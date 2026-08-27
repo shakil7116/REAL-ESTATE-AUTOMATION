@@ -1,0 +1,30 @@
+{
+  "minimax-m3-free": {
+    "engine": "minimax-m3-free",
+    "date": "2026-08-26",
+    "per_prompt": {
+      "copilot-system": 0.85,
+      "ad-copy": 0.82,
+      "lead-scoring": 0.78
+    }
+  },
+  "kimi": {
+    "engine": "kimi",
+    "date": "2026-08-26",
+    "per_prompt": {
+      "copilot-system": 0.83,
+      "ad-copy": 0.79,
+      "lead-scoring": 0.74
+    }
+  },
+  "deepseek": {
+    "engine": "deepseek",
+    "date": "2026-08-26",
+    "per_prompt": {
+      "copilot-system": 0.81,
+      "ad-copy": 0.76,
+      "lead-scoring": 0.72
+    }
+  },
+  "_note": "These baselines are PLACEHOLDERS. Real baselines must be set after running /eval against a known-good state. Update by overwriting this file."
+}

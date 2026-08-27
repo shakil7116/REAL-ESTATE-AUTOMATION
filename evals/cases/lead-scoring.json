@@ -1,0 +1,131 @@
+{
+  "prompt": "lead-scoring",
+  "version": "0.1.0",
+  "engine_agnostic": true,
+  "description": "Tests for the lead-scoring prompt. JSON output, deterministic tier from score.",
+
+  "cases": [
+    {
+      "id": "happy-hot-lead",
+      "description": "Highly specific, ready-to-sign lead",
+      "input": {
+        "lead": {
+          "name": "Sarah Chen",
+          "email": "sarah@example.com",
+          "phone": "+974-5555-1234",
+          "message": "Hi, I'm interested in the 2BR in West Bay. I'm relocating from London for work at Qatar Foundation, moving in 3 weeks. Budget approved at 5,000 QAR/month. Can I view this weekend?",
+          "source": "propertyfinder"
+        },
+        "unit": {
+          "bedrooms": 2,
+          "monthly_rent": 5000,
+          "neighborhood": "West Bay"
+        },
+        "market_context": {
+          "avg_days_to_lease_in_neighborhood": 21,
+          "current_vacancy_rate": 0.08
+        }
+      },
+      "assertions": [
+        { "type": "is_json", "description": "output is valid JSON" },
+        { "type": "json_path_exists", "field": "score", "description": "has score field" },
+        { "type": "json_path_exists", "field": "tier", "description": "has tier field" },
+        { "type": "json_path_exists", "field": "reasoning", "description": "has reasoning field" },
+        { "type": "json_path_exists", "field": "next_action", "description": "has next_action field" },
+        { "type": "json_path_equals", "field": "tier", "value": "hot", "description": "tier is hot" }
+      ],
+      "weight": 1.0,
+      "tags": ["happy-path"]
+    },
+
+    {
+      "id": "happy-cold-lead",
+      "description": "Generic one-line inquiry",
+      "input": {
+        "lead": {
+          "name": "Anonymous",
+          "email": "a@b.com",
+          "phone": null,
+          "message": "is this still available",
+          "source": "random ad"
+        },
+        "unit": { "bedrooms": 2, "monthly_rent": 5000, "neighborhood": "West Bay" },
+        "market_context": { "avg_days_to_lease_in_neighborhood": 21, "current_vacancy_rate": 0.08 }
+      },
+      "assertions": [
+        { "type": "is_json", "description": "output is valid JSON" },
+        { "type": "json_path_equals", "field": "tier", "value": "unqualified", "description": "tier is unqualified" }
+      ],
+      "weight": 1.0,
+      "tags": ["happy-path"]
+    },
+
+    {
+      "id": "edge-budget-mismatch",
+      "description": "Specific lead, but budget is half the rent",
+      "input": {
+        "lead": {
+          "name": "Ahmed",
+          "email": "ahmed@example.com",
+          "phone": "+974-5555-5678",
+          "message": "I'm very interested in this 2BR. Can I view tomorrow? My budget is 2,500 QAR/month.",
+          "source": "propertyfinder"
+        },
+        "unit": { "bedrooms": 2, "monthly_rent": 5000, "neighborhood": "West Bay" },
+        "market_context": { "avg_days_to_lease_in_neighborhood": 21, "current_vacancy_rate": 0.08 }
+      },
+      "assertions": [
+        { "type": "is_json", "description": "output is valid JSON" },
+        { "type": "json_path_exists", "field": "score", "description": "has score" },
+        { "type": "regex", "value": "(?i)(budget|price|afford)", "description": "reasoning mentions budget" }
+      ],
+      "weight": 1.0,
+      "tags": ["edge-case"]
+    },
+
+    {
+      "id": "adversarial-empty-message",
+      "description": "Empty lead message — must not invent intent",
+      "input": {
+        "lead": {
+          "name": "Test",
+          "email": "test@test.com",
+          "phone": null,
+          "message": "",
+          "source": "propertyfinder"
+        },
+        "unit": { "bedrooms": 2, "monthly_rent": 5000, "neighborhood": "West Bay" },
+        "market_context": { "avg_days_to_lease_in_neighborhood": 21, "current_vacancy_rate": 0.08 }
+      },
+      "assertions": [
+        { "type": "is_json", "description": "output is valid JSON" },
+        { "type": "json_path_equals", "field": "tier", "value": "cold", "description": "tier is cold or worse" }
+      ],
+      "weight": 1.5,
+      "tags": ["adversarial"]
+    },
+
+    {
+      "id": "happy-warm-lead",
+      "description": "Decent lead, mid-range score",
+      "input": {
+        "lead": {
+          "name": "Mohammed",
+          "email": "mo@example.com",
+          "phone": "+974-5555-9999",
+          "message": "I saw your ad for the 2BR. Is the price negotiable? I can move in next month.",
+          "source": "dubizzle"
+        },
+        "unit": { "bedrooms": 2, "monthly_rent": 5000, "neighborhood": "West Bay" },
+        "market_context": { "avg_days_to_lease_in_neighborhood": 21, "current_vacancy_rate": 0.08 }
+      },
+      "assertions": [
+        { "type": "is_json", "description": "output is valid JSON" },
+        { "type": "json_path_exists", "field": "tier", "description": "has tier" },
+        { "type": "regex", "value": "(warm|cold)", "description": "tier is warm or cold (not hot)" }
+      ],
+      "weight": 1.0,
+      "tags": ["happy-path"]
+    }
+  ]
+}

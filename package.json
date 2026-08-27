@@ -1,0 +1,21 @@
+{
+  "name": "propertyease-aios",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PropertyEase AI-OS — model-agnostic orchestration layer (CLAUDE.md, AGENTS.md, contracts, evals, skills, monitoring). This is the ROOT workspace. Per-app workspaces live in propertyease/ and propertyease-mobile/.",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "eval": "tsx evals/runner.ts",
+    "eval:stub": "PE_EVAL_STUB=1 tsx evals/runner.ts",
+    "eval:history": "cat memory/evals-history.md 2>/dev/null || echo 'No eval history yet'",
+    "validate:json": "node -e \"['.mcp.json','.claude/settings.json','evals/baseline.json','evals/_schema.json',...require('fs').readdirSync('evals/cases').filter(f=>f.endsWith('.json')).map(f=>'evals/cases/'+f)].forEach(f=>{try{JSON.parse(require('fs').readFileSync(f,'utf-8'));console.log('✓',f)}catch(e){console.log('✗',f,e.message);process.exit(1)}})\"",
+    "test:contracts": "npm run validate:json"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3"
+  }
+}

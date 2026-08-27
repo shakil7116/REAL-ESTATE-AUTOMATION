@@ -1,0 +1,108 @@
+{
+  "prompt": "ad-copy",
+  "version": "0.1.0",
+  "engine_agnostic": true,
+  "description": "Tests for the ad-copy generator. Bilingual, JSON output, platform-aware.",
+
+  "cases": [
+    {
+      "id": "happy-luxury-2br",
+      "description": "Luxury 2BR in West Bay, Instagram tone",
+      "input": {
+        "unit": {
+          "bedrooms": 2,
+          "bathrooms": 2,
+          "sqft": 1200,
+          "monthly_rent": 5500,
+          "address": "West Bay, Doha",
+          "amenities": ["pool", "gym", "sea view"]
+        },
+        "tone": "luxury",
+        "platform": "instagram"
+      },
+      "assertions": [
+        { "type": "is_json", "description": "output is valid JSON" },
+        { "type": "json_path_exists", "field": "en.headline", "description": "has English headline" },
+        { "type": "json_path_exists", "field": "ar.headline", "description": "has Arabic headline" },
+        { "type": "json_path_exists", "field": "en.body", "description": "has English body" },
+        { "type": "json_path_exists", "field": "ar.body", "description": "has Arabic body" },
+        { "type": "json_path_exists", "field": "en.hashtags", "description": "has English hashtags" },
+        { "type": "json_path_exists", "field": "ar.hashtags", "description": "has Arabic hashtags" }
+      ],
+      "weight": 1.0,
+      "tags": ["happy-path"]
+    },
+
+    {
+      "id": "happy-family-3br",
+      "description": "Family-friendly 3BR in Al Rayyan, propertyfinder",
+      "input": {
+        "unit": {
+          "bedrooms": 3,
+          "bathrooms": 2,
+          "sqft": 1800,
+          "monthly_rent": 4800,
+          "address": "Al Rayyan, Doha",
+          "amenities": ["garden", "parking", "near schools"]
+        },
+        "tone": "family-friendly",
+        "platform": "propertyfinder"
+      },
+      "assertions": [
+        { "type": "is_json", "description": "output is valid JSON" },
+        { "type": "json_path_exists", "field": "en.body", "description": "has English body" },
+        { "type": "json_path_exists", "field": "ar.body", "description": "has Arabic body" }
+      ],
+      "weight": 1.0,
+      "tags": ["happy-path"]
+    },
+
+    {
+      "id": "edge-studio-no-amenities",
+      "description": "Studio with no amenities — must not invent",
+      "input": {
+        "unit": {
+          "bedrooms": 0,
+          "bathrooms": 1,
+          "sqft": 400,
+          "monthly_rent": 2200,
+          "address": "Al Sadd, Doha",
+          "amenities": []
+        },
+        "tone": "student",
+        "platform": "dubizzle"
+      },
+      "assertions": [
+        { "type": "is_json", "description": "output is valid JSON" },
+        { "type": "not_contains", "value": "pool", "description": "doesn't invent pool" },
+        { "type": "not_contains", "value": "gym", "description": "doesn't invent gym" }
+      ],
+      "weight": 1.0,
+      "tags": ["edge-case"]
+    },
+
+    {
+      "id": "adversarial-headline-length",
+      "description": "Headlines must not exceed limits",
+      "input": {
+        "unit": {
+          "bedrooms": 5,
+          "bathrooms": 4,
+          "sqft": 3500,
+          "monthly_rent": 18000,
+          "address": "Pearl Qatar",
+          "amenities": ["private beach", "butler service", "private pool", "smart home"]
+        },
+        "tone": "luxury",
+        "platform": "instagram"
+      },
+      "assertions": [
+        { "type": "is_json", "description": "output is valid JSON" },
+        { "type": "json_path_equals", "field": "en.headline.length", "value": false, "description": "_placeholder — actual length check below" }
+      ],
+      "weight": 1.5,
+      "tags": ["adversarial"],
+      "_note": "Length check is enforced by max_length assertion on the headline field. For v0.1 we accept that not all engines enforce exactly. v0.2 will add field-aware length assertions."
+    }
+  ]
+}

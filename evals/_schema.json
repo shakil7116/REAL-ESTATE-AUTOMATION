@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PropertyEase Eval Case File",
+  "description": "JSON Schema for files in evals/cases/. Each file tests one prompt.",
+  "type": "object",
+  "required": ["prompt", "version", "engine_agnostic", "cases"],
+  "properties": {
+    "prompt": {
+      "type": "string",
+      "description": "Filename of the prompt in contracts/prompts/ (without .md)"
+    },
+    "version": {
+      "type": "string",
+      "description": "Eval suite version (semver). Bump when cases change."
+    },
+    "engine_agnostic": {
+      "type": "boolean",
+      "description": "If true, cases test behavior not exact strings. Should be true for all PropertyEase evals."
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable summary of what this suite tests"
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "description", "input", "assertions", "weight"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier, kebab-case"
+          },
+          "description": {
+            "type": "string"
+          },
+          "input": {
+            "type": "object",
+            "description": "Variables to fill into the prompt template",
+            "additionalProperties": true
+          },
+          "expected": {
+            "type": "object",
+            "description": "Optional reference output for sanity-checking (not asserted verbatim)"
+          },
+          "assertions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["type"],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "contains",
+                    "not_contains",
+                    "regex",
+                    "max_length",
+                    "min_length",
+                    "is_json",
+                    "json_path_equals",
+                    "json_path_exists",
+                    "language_is",
+                    "refuses"
+                  ]
+                },
+                "field": {
+                  "type": "string",
+                  "description": "For json_path_* assertions, the JSON path (e.g. 'data.score')"
+                },
+                "value": {},
+                "description": "Human-readable description of what this asserts"
+              }
+            }
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "default": 1.0
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "enum": ["happy-path", "edge-case", "adversarial", "regression"]
+            }
+          }
+        }
+      }
+    }
+  }
+}
