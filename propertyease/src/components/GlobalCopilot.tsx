@@ -124,17 +124,14 @@ export default function GlobalCopilot({ lang }: GlobalCopilotProps) {
     }
   };
 
-  // ── ESC + body-scroll lock while open ──────────────────────────────
+  // No backdrop, no body-scroll lock — the page behind stays fully visible
+  // and interactable so users can scroll the page while Copilot is open.
+  // ESC still closes.
   useEffect(() => {
     if (!isOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsOpen(false); };
     window.addEventListener('keydown', onKey);
-    return () => {
-      document.body.style.overflow = prev;
-      window.removeEventListener('keydown', onKey);
-    };
+    return () => window.removeEventListener('keydown', onKey);
   }, [isOpen]);
 
   // ── Auto-scroll on new message ─────────────────────────────────────
@@ -195,32 +192,26 @@ export default function GlobalCopilot({ lang }: GlobalCopilotProps) {
         </button>
       )}
 
-      {/* ─── Backdrop (always present when open) ─── */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
-          onClick={() => setIsOpen(false)}
-          aria-hidden
-        />
-      )}
-
-      {/* ─── Panel: centered card on mobile, right-anchored card on >=sm ─── */}
+      {/* ─── Panel: large centered card, ~half the window ─── */}
+      {/* No backdrop — the page behind stays fully visible and scrollable. */}
       <div
         dir={isRtl ? 'rtl' : 'ltr'}
         role="dialog"
-        aria-modal="true"
+        aria-modal="false"
         aria-label="PropertyEase Copilot"
         aria-hidden={!isOpen}
         className={[
           'fixed z-50 flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden',
-          // Mobile: bottom sheet; Desktop: right-anchored card
-          'inset-x-3 bottom-3 top-auto max-h-[80vh]',
-          'sm:inset-auto sm:bottom-5',
-          isRtl
-            ? 'sm:left-5 sm:right-auto sm:w-[420px] sm:h-[600px] sm:max-h-[calc(100vh-2.5rem)]'
-            : 'sm:right-5 sm:left-auto sm:w-[420px] sm:h-[600px] sm:max-h-[calc(100vh-2.5rem)]',
-          'transition-all duration-200 ease-out origin-bottom',
-          isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none',
+          // Mobile: bottom sheet, full width
+          'inset-x-3 bottom-3 top-auto h-[80vh] max-h-[80vh]',
+          // >=sm: centered large card, ~50% width / 80% height
+          'sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2',
+          'sm:w-[min(720px,60vw)] sm:max-w-[720px]',
+          'sm:h-[min(720px,80vh)] sm:max-h-[80vh]',
+          'transition-all duration-200 ease-out',
+          isOpen
+            ? 'opacity-100 scale-100'
+            : 'opacity-0 scale-95 pointer-events-none',
         ].join(' ')}
       >
         {/* Header */}
