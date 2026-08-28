@@ -1,16 +1,20 @@
 /**
- * GlobalCopilot — single panel mounted in the dashboard layout, available on every page.
+ * GlobalCopilot — floating Copilot available on every page.
  *
- * Behavior:
- *  - On desktop ≥1280px ("xl"): push layout. Main content gets a right padding (handled by layout).
- *    The panel sits as a fixed 360px right column.
- *  - On tablet/mobile: overlay. Backdrop closes; ESC closes; main content stays full-width.
- *  - Voice: Web Speech API (SpeechRecognition). Browser support is best in Chrome/Edge.
- *    Falls back to a "voice not supported" toast if unavailable.
- *  - Toggled via Cmd/Ctrl+J (in addition to the FAB).
+ * Trigger:
+ *  - Floating pill in the bottom-right (always visible when closed)
+ *  - CopilotOpenButton in the page header
+ *  - Cmd/Ctrl+J from anywhere
  *
- * The component owns its own state — no global store needed. It receives nothing from
- * the layout except lang.
+ * When opened, the panel is a true overlay (backdrop + centered card on
+ * mobile, right-anchored card on >=sm). The page behind it stays fully
+ * visible and clickable through the backdrop. ESC + backdrop click
+ * close it.
+ *
+ * Voice: Web Speech API (SpeechRecognition). Best support in
+ * Chrome/Edge. Falls back to a "voice not supported" hint if missing.
+ *
+ * The component owns its state — no global store, no layout side effects.
  */
 'use client';
 
@@ -28,7 +32,6 @@ declare global {
 
 export interface GlobalCopilotProps {
   lang: 'en' | 'ar';
-  /** Optional: where Copilot is mounted in the visual stack (z-index handled inline) */
 }
 
 interface Message {
@@ -69,11 +72,7 @@ export default function GlobalCopilot({ lang }: GlobalCopilotProps) {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'j') {
         e.preventDefault();
-        setIsOpen(prev => {
-          const next = !prev;
-          window.dispatchEvent(new CustomEvent(next ? 'pe:copilot:open' : 'pe:copilot:close'));
-          return next;
-        });
+        setIsOpen(prev => !prev);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -86,13 +85,6 @@ export default function GlobalCopilot({ lang }: GlobalCopilotProps) {
     window.addEventListener('pe:copilot:open', onOpen as EventListener);
     return () => window.removeEventListener('pe:copilot:open', onOpen as EventListener);
   }, []);
-
-  // ── Broadcast close so layout can drop the right gutter ───────────
-  useEffect(() => {
-    if (!isOpen) {
-      window.dispatchEvent(new CustomEvent('pe:copilot:close'));
-    }
-  }, [isOpen]);
 
   // ── Voice: Web Speech API ──────────────────────────────────────────
   useEffect(() => {
@@ -131,6 +123,19 @@ export default function GlobalCopilot({ lang }: GlobalCopilotProps) {
       }
     }
   };
+
+  // ── ESC + body-scroll lock while open ──────────────────────────────
+  useEffect(() => {
+    if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [isOpen]);
 
   // ── Auto-scroll on new message ─────────────────────────────────────
   useEffect(() => {
@@ -171,44 +176,52 @@ export default function GlobalCopilot({ lang }: GlobalCopilotProps) {
 
   return (
     <>
-      {/* ─── Floating toggle (visible on tablet/mobile, also when closed on desktop) ─── */}
+      {/* ─── Floating trigger pill (bottom-right, always visible when closed) ─── */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
           className={[
-            'fixed bottom-6 z-40',
-            isRtl ? 'left-6' : 'right-6',
-            'group flex items-center gap-2 bg-[#132B25] hover:bg-[#1A3831] text-white rounded-full pl-4 pr-5 py-3 shadow-2xl transition-all',
+            'fixed bottom-5 z-40 group flex items-center gap-2',
+            isRtl ? 'left-5' : 'right-5',
+            'bg-[#132B25] hover:bg-[#1A3831] text-white rounded-full pl-4 pr-5 py-3 shadow-2xl transition-all',
           ].join(' ')}
-          aria-label="Open Copilot"
+          aria-label={t('Open Copilot', 'فتح المساعد')}
         >
           <Sparkles className="w-4 h-4 text-[#D97757] group-hover:scale-110 transition-transform" />
-          <span className="text-xs font-bold tracking-wide">{t('Open Copilot', 'فتح المساعد')}</span>
+          <span className="text-xs font-bold tracking-wide">
+            {t('Ask Copilot', 'اسأل المساعد')}
+          </span>
           <kbd className="hidden sm:inline-block bg-white/10 border border-white/20 text-[10px] font-mono px-1.5 py-0.5 rounded-md ms-1">⌘J</kbd>
         </button>
       )}
 
-      {/* ─── Backdrop (overlay mode only, on tablet/mobile) ─── */}
+      {/* ─── Backdrop (always present when open) ─── */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm xl:hidden"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
           onClick={() => setIsOpen(false)}
           aria-hidden
         />
       )}
 
-      {/* ─── Panel ─── */}
-      <aside
+      {/* ─── Panel: centered card on mobile, right-anchored card on >=sm ─── */}
+      <div
         dir={isRtl ? 'rtl' : 'ltr'}
-        className={[
-          'fixed top-0 bottom-0 z-50 w-full sm:w-[420px] xl:w-[400px] bg-white border-slate-200 flex flex-col transition-transform duration-300 ease-out',
-          // Push on desktop, overlay on smaller
-          'xl:border-s xl:translate-x-0',
-          isRtl ? 'xl:border-s' : 'xl:border-s',
-          isRtl ? 'right-0 xl:right-[240px]' : 'right-0 xl:right-[240px]', // sit to the right of the 240px sidebar
-          isOpen ? 'translate-x-0' : (isRtl ? 'translate-x-full' : 'translate-x-full'),
-        ].join(' ')}
+        role="dialog"
+        aria-modal="true"
+        aria-label="PropertyEase Copilot"
         aria-hidden={!isOpen}
+        className={[
+          'fixed z-50 flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden',
+          // Mobile: bottom sheet; Desktop: right-anchored card
+          'inset-x-3 bottom-3 top-auto max-h-[80vh]',
+          'sm:inset-auto sm:bottom-5',
+          isRtl
+            ? 'sm:left-5 sm:right-auto sm:w-[420px] sm:h-[600px] sm:max-h-[calc(100vh-2.5rem)]'
+            : 'sm:right-5 sm:left-auto sm:w-[420px] sm:h-[600px] sm:max-h-[calc(100vh-2.5rem)]',
+          'transition-all duration-200 ease-out origin-bottom',
+          isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none',
+        ].join(' ')}
       >
         {/* Header */}
         <div className="bg-[#132B25] px-5 py-4 text-white flex items-center justify-between shrink-0">
@@ -234,7 +247,7 @@ export default function GlobalCopilot({ lang }: GlobalCopilotProps) {
         </div>
 
         {/* Conversation */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50 min-h-0">
           {messages.length === 0 && !isTyping && (
             <div className="space-y-4 py-4">
               <div className="text-center px-4">
@@ -346,7 +359,7 @@ export default function GlobalCopilot({ lang }: GlobalCopilotProps) {
             </div>
           )}
         </div>
-      </aside>
+      </div>
     </>
   );
 }
