@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import SearchModal from '@/components/SearchModal';
 import RemoteControlModal from '@/components/RemoteControlModal';
+import GlobalCopilot from '@/components/GlobalCopilot';
+import CopilotOpenButton from '@/components/CopilotOpenButton';
 import { Search, Bell, Menu, Smartphone, Globe } from 'lucide-react';
 import { useCountry } from '@/context/CountryContext';
 import { COUNTRIES, type CountryConfig } from '@/context/CountryContext';
@@ -20,8 +22,22 @@ export default function DashboardLayout({
   const [searchOpen, setSearchOpen] = useState(false);
   const [remoteModalOpen, setRemoteModalOpen] = useState(false);
   const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
+  const [copilotOpen, setCopilotOpen] = useState(false);
   const { country, setCountry } = useCountry();
   const isRtl = lang === 'ar';
+
+  // Listen to Copilot open/close events so the main content can reserve
+  // the right gutter on desktop (push layout).
+  useEffect(() => {
+    const onOpen = () => setCopilotOpen(true);
+    const onClose = () => setCopilotOpen(false);
+    window.addEventListener('pe:copilot:open', onOpen as EventListener);
+    window.addEventListener('pe:copilot:close', onClose as EventListener);
+    return () => {
+      window.removeEventListener('pe:copilot:open', onOpen as EventListener);
+      window.removeEventListener('pe:copilot:close', onClose as EventListener);
+    };
+  }, []);
 
   // Load language preference from localStorage
   useEffect(() => {
@@ -108,7 +124,7 @@ export default function DashboardLayout({
       {/* Main Content Area */}
       <div className={`flex-1 transition-all duration-300 ${
         isRtl ? 'lg:mr-[240px]' : 'lg:ml-[240px]'
-      }`}>
+      } ${copilotOpen ? 'xl:mr-[400px]' : ''}`}>
         {/* Top Navigation Bar Header */}
         <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-8 py-4 flex items-center justify-between">
           {/* Left / Title Header */}
@@ -199,6 +215,9 @@ export default function DashboardLayout({
               <span>{lang === 'en' ? 'عربي' : 'EN'}</span>
             </button>
 
+            {/* Copilot open button (also bound to ⌘J from the panel itself) */}
+            <CopilotOpenButton lang={lang} />
+
             {/* Notification Bell with red indicator */}
             <button className="w-9 h-9 bg-white border border-slate-200 hover:bg-slate-50 rounded-full flex items-center justify-center text-slate-600 transition-all shadow-sm relative">
               <Bell className="w-4 h-4" />
@@ -232,6 +251,9 @@ export default function DashboardLayout({
         onClose={() => setRemoteModalOpen(false)}
         lang={lang}
       />
+
+      {/* Global Copilot — available on every page, voice-enabled */}
+      <GlobalCopilot lang={lang} />
     </div>
   );
 }
