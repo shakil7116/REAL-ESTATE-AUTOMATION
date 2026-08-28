@@ -1,20 +1,17 @@
 /**
  * GlobalCopilot — floating Copilot available on every page.
  *
- * Trigger:
- *  - Floating pill in the bottom-right (always visible when closed)
- *  - CopilotOpenButton in the page header
- *  - Cmd/Ctrl+J from anywhere
+ * Layout:
+ *  - Mobile (<lg): true overlay, full-screen sheet.
+ *  - Desktop (>=lg): right-anchored panel that takes the right 1/3 of
+ *    (viewport - 240px), full viewport height. The page behind shrinks
+ *    to the left 2/3 (push layout, handled in (dashboard)/layout.tsx).
+ *    The page is fully visible, no backdrop dimming, no scroll lock —
+ *    users can keep reading/scrolling the page while Copilot is open.
  *
- * When opened, the panel is a true overlay (backdrop + centered card on
- * mobile, right-anchored card on >=sm). The page behind it stays fully
- * visible and clickable through the backdrop. ESC + backdrop click
- * close it.
+ * Triggers: floating pill (bottom-right), header CopilotOpenButton, ⌘J.
  *
- * Voice: Web Speech API (SpeechRecognition). Best support in
- * Chrome/Edge. Falls back to a "voice not supported" hint if missing.
- *
- * The component owns its state — no global store, no layout side effects.
+ * Voice: Web Speech API. Best support in Chrome/Edge.
  */
 'use client';
 
@@ -72,7 +69,11 @@ export default function GlobalCopilot({ lang }: GlobalCopilotProps) {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'j') {
         e.preventDefault();
-        setIsOpen(prev => !prev);
+        setIsOpen(prev => {
+          const next = !prev;
+          window.dispatchEvent(new CustomEvent(next ? 'pe:copilot:open' : 'pe:copilot:close'));
+          return next;
+        });
       }
     };
     window.addEventListener('keydown', onKey);
@@ -85,6 +86,13 @@ export default function GlobalCopilot({ lang }: GlobalCopilotProps) {
     window.addEventListener('pe:copilot:open', onOpen as EventListener);
     return () => window.removeEventListener('pe:copilot:open', onOpen as EventListener);
   }, []);
+
+  // ── Broadcast close so the layout can drop the right gutter ───────
+  useEffect(() => {
+    if (!isOpen) {
+      window.dispatchEvent(new CustomEvent('pe:copilot:close'));
+    }
+  }, [isOpen]);
 
   // ── Voice: Web Speech API ──────────────────────────────────────────
   useEffect(() => {
@@ -192,26 +200,32 @@ export default function GlobalCopilot({ lang }: GlobalCopilotProps) {
         </button>
       )}
 
-      {/* ─── Panel: large centered card, ~half the window ─── */}
-      {/* No backdrop — the page behind stays fully visible and scrollable. */}
-      <div
+      {/* ─── Panel: full-screen sheet on mobile, right-third docked column on >=lg ─── */}
+      {/* On lg+ the panel is a right-anchored, full-height column taking the right
+          1/3 of (viewport - 240px). The page behind it is fully visible — no
+          backdrop, no dimming — and the main content is pushed left by the
+          layout's `lg:ml-[calc(...)]` to make room. */}
+      <aside
         dir={isRtl ? 'rtl' : 'ltr'}
         role="dialog"
         aria-modal="false"
         aria-label="PropertyEase Copilot"
         aria-hidden={!isOpen}
         className={[
-          'fixed z-50 flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden',
-          // Mobile: bottom sheet, full width
-          'inset-x-3 bottom-3 top-auto h-[80vh] max-h-[80vh]',
-          // >=sm: centered large card, ~50% width / 80% height
-          'sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2',
-          'sm:w-[min(720px,60vw)] sm:max-w-[720px]',
-          'sm:h-[min(720px,80vh)] sm:max-h-[80vh]',
-          'transition-all duration-200 ease-out',
+          'fixed z-50 flex flex-col bg-white shadow-2xl border-slate-200 overflow-hidden',
+          // Mobile: full-screen bottom sheet
+          'inset-0 sm:inset-y-0 sm:inset-x-auto',
+          // >=lg: right-anchored docked column, right 1/3 of (viewport - 240px)
+          // Width = (100vw - 240px) / 3. Use calc with vw. Direction-aware
+          // (anchored to right edge in LTR, left edge in RTL).
+          isRtl
+            ? 'lg:left-[240px] lg:right-auto lg:w-[calc((100vw_-_240px)_/_3)]'
+            : 'lg:right-0 lg:left-auto lg:w-[calc((100vw_-_240px)_/_3)]',
+          'lg:border-s',
+          'transition-transform duration-300 ease-out',
           isOpen
-            ? 'opacity-100 scale-100'
-            : 'opacity-0 scale-95 pointer-events-none',
+            ? 'translate-x-0'
+            : (isRtl ? '-translate-x-full' : 'translate-x-full'),
         ].join(' ')}
       >
         {/* Header */}
@@ -350,7 +364,7 @@ export default function GlobalCopilot({ lang }: GlobalCopilotProps) {
             </div>
           )}
         </div>
-      </div>
+      </aside>
     </>
   );
 }

@@ -8,9 +8,10 @@ import GlobalCopilot from '@/components/GlobalCopilot';
 import CopilotOpenButton from '@/components/CopilotOpenButton';
 import { Search, Bell, Menu, Smartphone, Globe } from 'lucide-react';
 
-// GlobalCopilot now lives as a floating overlay (pill bottom-right → popup
-// panel). It does NOT reserve a layout gutter anymore, so the main content
-// stays at full width and users can still see/click everything behind it.
+// Layout: sidebar (240px, left, lg+) | main content | copilot (right third when open, lg+)
+// When Copilot is open on >=lg, the main content shrinks to the left 2/3 of the
+// (viewport - 240px) area, and the Copilot panel takes the right 1/3, full height.
+// Below <lg, Copilot is a true floating overlay (no push), since there's no sidebar.
 import { useCountry } from '@/context/CountryContext';
 import { COUNTRIES, type CountryConfig } from '@/context/CountryContext';
 import { useMounted } from '@/lib/useClientTime';
@@ -26,8 +27,22 @@ export default function DashboardLayout({
   const [searchOpen, setSearchOpen] = useState(false);
   const [remoteModalOpen, setRemoteModalOpen] = useState(false);
   const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
+  const [copilotOpen, setCopilotOpen] = useState(false);
   const { country, setCountry } = useCountry();
   const isRtl = lang === 'ar';
+
+  // Copilot pushes the main content to the left on >=lg. Below that
+  // it's a floating overlay (no push).
+  useEffect(() => {
+    const onOpen = () => setCopilotOpen(true);
+    const onClose = () => setCopilotOpen(false);
+    window.addEventListener('pe:copilot:open', onOpen as EventListener);
+    window.addEventListener('pe:copilot:close', onClose as EventListener);
+    return () => {
+      window.removeEventListener('pe:copilot:open', onOpen as EventListener);
+      window.removeEventListener('pe:copilot:close', onClose as EventListener);
+    };
+  }, []);
 
   // Load language preference from localStorage
   useEffect(() => {
@@ -111,10 +126,20 @@ export default function DashboardLayout({
         onClose={() => setMobileOpen(false)}
       />
 
-      {/* Main Content Area — full width; Copilot is a floating overlay */}
-      <div className={`flex-1 transition-all duration-300 ${
-        isRtl ? 'lg:mr-[240px]' : 'lg:ml-[240px]'
-      }`}>
+      {/* Main Content Area — pushed left 2/3 of (viewport - 240px) when Copilot is open on lg+ */}
+      <div
+        className={[
+          'flex-1 transition-all duration-300',
+          isRtl ? 'lg:mr-[240px]' : 'lg:ml-[240px]',
+          // When Copilot is open on >=lg, main content takes the left 2/3 of the post-sidebar area.
+          // Width = (100vw - 240px) * (2/3). Use calc with vw.
+          copilotOpen
+            ? (isRtl
+                ? 'lg:mr-[calc(240px_+_(100vw_-_240px)_*_2_/_3)]'
+                : 'lg:ml-[calc(240px_+_(100vw_-_240px)_*_2_/_3)]')
+            : '',
+        ].join(' ')}
+      >
         {/* Top Navigation Bar Header */}
         <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-8 py-4 flex items-center justify-between">
           {/* Left / Title Header */}
