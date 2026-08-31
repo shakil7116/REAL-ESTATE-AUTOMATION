@@ -40,7 +40,9 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
         env:
-          DATABASE_URL: 'postgresql://stub:stub@localhost:5432/stub?schema=public'
+          # No real credentials here — Prisma only needs *something* parseable
+          # as a Postgres URL to resolve the `env("DATABASE_URL")` in schema.prisma.
+          DATABASE_URL: 'postgresql://stub@localhost:5432/stub?schema=public'
 
       - name: TypeScript typecheck
         run: npx tsc --noEmit
@@ -56,13 +58,20 @@ jobs:
           NEXTAUTH_SECRET: 'stub-secret-for-ci'
           NEXTAUTH_URL: 'http://localhost:3000'
 
-      - name: Build
+      - name: Build (source maps uploaded by Sentry SDK)
         run: npm run build
         env:
           NEXT_PUBLIC_SUPABASE_URL: 'https://stub.supabase.co'
           NEXT_PUBLIC_SUPABASE_ANON_KEY: 'stub-anon-key'
           NEXTAUTH_SECRET: 'stub-secret-for-ci'
           NEXTAUTH_URL: 'http://localhost:3000'
+          # Sentry — skipped in CI but config is present for local Prod builds
+          SENTRY_DSN: '${{ secrets.SENTRY_DSN }}'
+          SENTRY_ORG: '${{ secrets.SENTRY_ORG }}'
+          SENTRY_PROJECT: '${{ secrets.SENTRY_PROJECT }}'
+          # Vercel injects VERCEL_GIT_COMMIT_SHA automatically; stub for CI typecheck
+          VERCEL_GIT_COMMIT_SHA: '${{ github.sha }}'
+          NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA: '${{ github.sha }}'
 
       - name: Upload coverage
         uses: codecov/codecov-action@v3
