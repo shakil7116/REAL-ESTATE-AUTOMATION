@@ -16,6 +16,13 @@ const PRIORITY_TONE: Record<string, 'slate' | 'sky' | 'amber' | 'rose'> = {
   urgent: 'rose',
 };
 
+const PRIORITY_LABELS: Record<string, { en: string; ar: string }> = {
+  low:    { en: 'Low',      ar: 'منخفض' },
+  medium: { en: 'Medium',   ar: 'متوسط' },
+  high:   { en: 'High',     ar: 'مرتفع' },
+  urgent: { en: 'Urgent',   ar: 'عاجل' },
+};
+
 export default function MaintenancePage() {
   const [lang, setLang] = useState<'en' | 'ar'>('en');
   const isRtl = lang === 'ar';
@@ -166,7 +173,7 @@ export default function MaintenancePage() {
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <Badge tone={PRIORITY_TONE[t.priority] || 'slate'}>
-                    {tr(t.priority.charAt(0).toUpperCase() + t.priority.slice(1), t.priority)}
+                    {(() => { const pl = PRIORITY_LABELS[t.priority] || PRIORITY_LABELS.medium; return tr(pl.en, pl.ar); })()}
                   </Badge>
                   <StatusPill status={t.status} />
                 </div>

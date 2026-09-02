@@ -38,6 +38,33 @@ export default function SettingsPage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
 
+  /** Read account creation date from session (set at login/signup) */
+  const getUserAccountDate = (): string | null => {
+    try {
+      const raw = sessionStorage.getItem('propertyease_user');
+      if (raw) {
+        const u = JSON.parse(raw);
+        if (u?.createdAt) return String(u.createdAt);
+      }
+    } catch {}
+    return null;
+  };
+
+  /** Format account date respecting active locale (RTL vs LTR) */
+  const formatAccountDate = (isoStr?: string): string => {
+    if (!isoStr) return lang === 'ar' ? 'غير معروف' : 'Unknown';
+    const d = new Date(isoStr);
+    if (Number.isNaN(d.getTime())) return isoStr.split('T')[0];
+    try {
+      return d.toLocaleDateString(lang === 'ar' ? 'ar-QA' : 'en-US', {
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch {
+      return d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+    }
+  };
+
   // Load saved profile on mount (client-only to avoid SSR/client mismatch)
   useEffect(() => {
     const resolved = resolveName();
@@ -157,7 +184,10 @@ export default function SettingsPage() {
             <div className="pt-4 border-t border-slate-100">
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <ShieldAlert className="w-4 h-4" />
-                <span>{tr(`Role: Owner · Plan: Growth ${currency} 299/mo · Account created Jan 2025`, `الدور: مالك · الخطة: نمو 299 ${currency}/شهر · تم إنشاء الحساب يناير 2025`)}</span>
+                <span>{tr(
+                  `Role: Owner · Plan: Growth ${currency} 299/mo · Account created ${formatAccountDate(getUserAccountDate() ?? undefined)}`,
+                  `الدور: مالك · الخطة: نمو 299 ${currency}/شهر · تم إنشاء الحساب ${formatAccountDate(getUserAccountDate() ?? undefined)}`,
+                )}</span>
               </div>
             </div>
 
