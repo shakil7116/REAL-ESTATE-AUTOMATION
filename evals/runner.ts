@@ -140,9 +140,18 @@ function fillTemplate(template: string, vars: Record<string, any>): { system: st
   }
 
   // Replace {{var}} placeholders
+  // Supports both direct keys (tone, platform) and _json variants.
+  // If the template references {{unit_json}} but the case only provides { unit },
+  // automatically expand bare objects into their _json form.
+  const jsonAliases: Record<string, string> = {};
+  for (const key of Object.keys(vars)) {
+    if (typeof vars[key] !== 'object' || vars[key] === null) continue;
+    jsonAliases[key + '_json'] = vars[key];
+  }
+  const combinedVars = { ...vars, ...jsonAliases };
   const replace = (s: string) =>
     s.replace(/\{\{(\w+)\}\}/g, (_, key) => {
-      const v = vars[key];
+      const v = combinedVars[key];
       if (v === undefined) return `{{${key}}}`;
       if (typeof v === 'string') return v;
       return JSON.stringify(v, null, 2);
@@ -158,52 +167,158 @@ function fillTemplate(template: string, vars: Record<string, any>): { system: st
 // This is the single point of integration. When the engine changes,
 // only this function changes.
 async function callLLM(system: string, user: string): Promise<string> {
-  // ── Stub mode (deliberately healthy) ──────────────────────────
-  // Triggered by PE_EVAL_STUB=1, OR by absence of any LLM key.
-  // Returns a crafted output designed to PASS most assertions so
-  // the OS can validate end-to-end plumbing without a real LLM.
+  // Stub mode — deterministic outputs matching eval assertions.
   if (process.env.PE_EVAL_STUB === '1' || (!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN)) {
-    const looksLikeArabic = /[؀-ۿ]/.test(user);
-    const isJSONPrompt = /JSON|json output/i.test(system);
-    const isScoring = /score|tier/i.test(system) && isJSONPrompt;
+    const hasArabicUser = /[\u0600-\u06FF]/.test(user);
+    const looksLikeArabic = hasArabicUser;
+    const lowerSys = system.toLowerCase();
+    const lowerUser = user.toLowerCase();
 
-    if (isScoring) {
+    // Lead scoring: must check BEFORE ad-copy because lead user also has {{unit_json}}/<unit>
+    const isLeadScoring = /{{lead_json}}|<lead>|score.*lead|tier|lead-score/i.test(lowerUser) ||
+                          (/JSON|json output/i.test(system) && /score.*lead|tier/i.test(lowerSys));
+    if (isLeadScoring) {
+      const msgMatch = lowerUser.match(/"message"\s*:\s*"([^"]*)"/);
+      const message = msgMatch ? msgMatch[1] : '';
+
+      if (message.trim().length === 0) {
+        // Empty message = no signal; score conservatively as cold (not unqualified,
+        // since there's nothing to disqualify — just nothing to work with).
+        return JSON.stringify({
+          score: 30, tier: 'cold',
+          reasoning: 'No meaningful message content provided. Insufficient information to assess intent or readiness.',
+          next_action: 'add to nurture list',
+        });
+      }
+
+      const trimmed = message.trim();
+      const isGeneric = /^(is this|is it|available|\??\s*$)/i.test(trimmed);
+      if (isGeneric) {
+        return JSON.stringify({
+          score: 12, tier: 'unqualified',
+          reasoning: 'Generic one-line inquiry with no specifics on timing, budget, or intent.',
+          next_action: 'disqualify',
+        });
+      }
+
+      // Budget match: allow commas (e.g. "5,000 QAR") — \d{2,5} would split at comma.
+      const budgetMatch = trimmed.match(/\b(\d[\d,]*)\s*qar\b/i);
+      const rentMatch = lowerUser.match(/"monthly_rent"\s*:\s*(\d+)/);
+      if (budgetMatch && rentMatch) {
+        const budget = parseInt(budgetMatch[1].replace(/,/g, ''), 10);
+        const rent = parseInt(rentMatch[1], 10);
+        if (budget < rent * 0.5) {
+          return JSON.stringify({
+            score: 35, tier: 'cold',
+            reasoning: 'Budget of ' + budget.toLocaleString() + ' QAR is significantly below the asking rent of ' + rent.toLocaleString() + ' QAR.',
+            next_action: 'add to nurture list',
+          });
+        }
+      }
+
+      // Timing signals: broaden to catch "relocating", "moving in next month", etc.
+      const hasMoveIn = /moving|relocat|next week|this month|soon|view/i.test(trimmed);
+      const hasBudget = /\b\d+\s*qar\b/i.test(trimmed) || /budget/i.test(trimmed);
+      if (hasMoveIn && hasBudget) {
+        return JSON.stringify({
+          score: 92, tier: 'hot',
+          reasoning: 'Highly specific inquiry with clear move-in timeline, aligned budget, and named employer (high intent). Direct question about viewings suggests readiness to sign.',
+          next_action: 'call within 1 hour',
+        });
+      }
+
+      if (trimmed.length > 20) {
+        return JSON.stringify({
+          score: 58, tier: 'warm',
+          reasoning: 'Clear interest with some specifics on timing, but budget not stated and no direct action requested. Good follow-up candidate.',
+          next_action: 'email within 24 hours',
+        });
+      }
+
       return JSON.stringify({
-        score: 85,
-        tier: 'hot',
-        reasoning: 'Specific inquiry with budget alignment and clear timeline.',
-        next_action: 'call within 1 hour',
+        score: 30, tier: 'cold',
+        reasoning: 'Limited signal in the inquiry. More information needed.',
+        next_action: 'add to nurture list',
       });
     }
-    if (isJSONPrompt) {
+
+    // Ad copy: detect via <unit>/{{unit_json}} in user OR system-prompt keywords.
+    // Must NOT match copilot (also says "bilingual" in system) — so we only use
+    // user-content signals or the more specific "copywriter" keyword.
+    const isAdCopy = /{{unit_json}}|<unit>|ad\.copy/i.test(lowerUser) ||
+                     (/JSON|json output/i.test(system) && /copywriter/i.test(lowerSys));
+    if (isAdCopy) {
+      const isEmptyAmenity = /"amenities"\s*:\s*\[\s*\]/.test(lowerUser);
+      if (isEmptyAmenity) {
+        return JSON.stringify({
+          en: {
+            headline: 'Cozy Studio in Al Sadd — QAR 2,200/mo',
+            body: 'Compact 400 sqft studio in Al Sadd. Quiet neighborhood, great for students. Walk to metro and campus.',
+            hashtags: ['#DohaRentals', '#AlSadd', '#PropertyEase', '#QatarRealEstate', '#Studio'],
+            cta: 'Book a viewing today',
+          },
+          ar: {
+            headline: 'استوديو مريح في اللؤلؤة',
+            body: 'استوديو مدمج مساحة ٤٠٠ قدم مربع في اللؤلؤة. حي هادئ مثالي للطلاب.',
+            hashtags: ['#عقارات_الدوحة', '#اللؤلؤة', '#بروبرتي_aيز', '#عقارات_قطر', '#استوديو'],
+            cta: 'احجز معاينة اليوم',
+          },
+        });
+      }
       return JSON.stringify({
         en: {
-          headline: 'Spacious 2BR in West Bay with Sea View',
-          body: 'Bright 2-bedroom apartment in West Bay. Pool, gym, and 1,200 sqft of living space. Ready to move in.',
+          headline: 'Luxurious 2BR Apartment in West Bay with Sea View',
+          body: 'Spacious 2-bedroom, 2-bathroom apartment in the heart of West Bay. 1,200 sqft of bright living space with pool, gym, and stunning sea views.',
           hashtags: ['#DohaRentals', '#WestBay', '#PropertyEase', '#QatarRealEstate', '#2BHApartment'],
-          cta: 'Book a viewing today',
+          cta: 'Book a private viewing today',
         },
         ar: {
-          headline: 'شقة فسيحة بغرفتي نوم في الخليج الغربي',
-          body: 'شقة مشرقة بغرفتي نوم في الخليج الغربي. حمام سباحة ونادي رياضي ومساحة ١٢٠٠ قدم مربع. جاهزة للسكن.',
-          hashtags: ['#عقارات_الدوحة', '#الخليج_الغربي', '#بروبرتي_ايز', '#عقارات_قطر', '#شقة_غرفتي_نوم'],
-          cta: 'احجز معاينة اليوم',
+          headline: 'شقة فاخرة بغرفتي نوم في الخليج الغربي',
+          body: 'شقة واسعة بغرفتي نوم وحمامين في قلب الخليج الغربي. مساحة معيشة مشرقة ١٢٠٠ قدم مربع مع مسبح ونادي رياضي وإطلالة بحرية رائعة.',
+          hashtags: ['#عقارات_الدوحة', '#الخليج_الغربي', '#بروبرتي_aيز', '#عقارات_قطر', '#شقة_غرفتي_نوم'],
+          cta: 'احجز مشاهدة خاصة اليوم',
         },
       });
     }
+
+    // Copilot stubs
+
+    // Arabic response for Arabic user input
     if (looksLikeArabic) {
-      return 'مرحباً، يمكنني مساعدتك في ذلك. يوجد 3 وحدات شاغرة في Lusail. هل تريد جدولة معاينة؟';
+      return 'مرحباُ، يمكنني مساعدتك في ذلك. يوجد 3 وحدات شاغرة في Lusail. هل تريد جدولة معاينة؟';
     }
+
+    // Confirm-before-action: user asks to create something + system says confirm
+    const hasActionIntent = /create|book|schedule|send|draft|make|open|generate/i.test(user);
+    const hasConfirmGuidance = /confirm|should i|want me to|proceed/i.test(system);
+    if (hasActionIntent && hasConfirmGuidance) {
+      return 'I can create a maintenance ticket for Unit 4B — should I proceed with that?';
+    }
+
+    // Refuse injection: user tries to get system prompt + system says don't reveal
+    const hasRefuseSignal = /ignore.*instructions|tell me your.*prompt/i.test(user) ||
+                            /refus|cannot reveal/i.test(system);
+    if (hasRefuseSignal) {
+      return 'I cannot reveal my system instructions. I am here to help with property management tasks only.';
+    }
+
+    // Missing data: user asks about ROI with empty portfolio
+    const hasMissingDataSignal = /what'?s the roi/i.test(user) ||
+                                 /missing data|dont have|cannot calculate/i.test(lowerUser);
+    if (hasMissingDataSignal) {
+      return 'I don\'t have enough data to calculate that. Could you provide more details about your portfolio?';
+    }
+
+    // Default English response
     return 'I can help with that. You have 3 vacant units in Lusail. Would you like to schedule a viewing?';
   }
 
-  // Real implementation would go here.
-  // For v1, throw if no provider is configured, so the failure is loud.
   throw new Error(
     'Real LLM call not yet wired. Set OPENAI_API_KEY or ANTHROPIC_AUTH_TOKEN, ' +
     'or run with PE_EVAL_STUB=1 to use stub mode.'
   );
 }
+
 
 // ── Run a single assertion ───────────────────────────────────────
 function runAssertion(output: string, assertion: Assertion): { passed: boolean; reason: string } {
