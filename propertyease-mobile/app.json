@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "PropertyEase",
+    "slug": "propertyease",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchitecture": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#132B25"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.propertyease.app",
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Take photos of maintenance issues or property conditions.",
+        "NSPhotoLibraryUsageDescription": "Attach photos to maintenance tickets or tenant records."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#132B25"
+      },
+      "package": "com.propertyease.app",
+      "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow PropertyEase to access your camera for taking photos of properties and maintenance issues."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id"
+      }
+    },
+    "owner": "propertyease"
+  }
+}
