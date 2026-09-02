@@ -180,7 +180,7 @@ export default function DashboardLayout({
             >
               <Search className="w-4 h-4 text-slate-400" />
               <span>{lang === 'en' ? 'Search anything' : 'بحث في النظام'}</span>
-              <kbd className="bg-slate-100 border border-slate-200 text-slate-500 text-[10px] font-semibold px-1.5 py-0.5 rounded-md ml-2">
+              <kbd className="bg-slate-100 border border-slate-200 text-slate-500 text-[10px] font-semibold px-1.5 py-0.5 rounded-md ms-2">
                 ⌘ K
               </kbd>
             </button>
@@ -207,7 +207,7 @@ export default function DashboardLayout({
                       <button
                         key={c.code}
                         onClick={() => { setCountry(c); setCountryDropdownOpen(false); }}
-                        className={`w-full text-left px-4 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 transition-colors ${
+                        className={`w-full py-2 ps-4 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 transition-colors ${
                           c.code === country.code ? 'text-[#D97757] font-bold' : 'text-slate-700'
                         }`}
                       >
@@ -240,7 +240,7 @@ export default function DashboardLayout({
             </button>
 
             {/* User Portfolio Tag matching screenshot */}
-            <div className="hidden md:flex flex-col text-right pl-2 border-l border-slate-200 ml-1">
+            <div className="hidden md:flex flex-col text-start pe-2 border-s border-slate-200 ms-1">
               <span className="text-xs font-bold text-slate-900 leading-tight">Portfolio HQ</span>
               <span className="text-[11px] text-slate-400">{country.capital} · {country.name}</span>
             </div>

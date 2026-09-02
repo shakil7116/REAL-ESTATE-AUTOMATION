@@ -17,7 +17,6 @@ export default function SettingsPage() {
 
   // Profile fields — resolve from session/localStorage
   const resolveName = (): string => {
-    if (typeof window === 'undefined') return '';
     try {
       const raw = sessionStorage.getItem('propertyease_user');
       if (raw) {
@@ -35,20 +34,19 @@ export default function SettingsPage() {
     return '';
   };
 
-  const [name, setName] = useState(() => resolveName());
+  const [name, setName] = useState('User');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
 
-  // Load saved profile on mount
+  // Load saved profile on mount (client-only to avoid SSR/client mismatch)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('propertyease_profile');
-      if (saved) {
-        const p = JSON.parse(saved);
-        if (p.name) setName(p.name);
-        if (p.email) setEmail(p.email);
-        if (p.phone) setPhone(p.phone);
-      }
+    const resolved = resolveName();
+    if (resolved) setName(resolved);
+    const saved = localStorage.getItem('propertyease_profile');
+    if (saved) {
+      const p = JSON.parse(saved);
+      if (p.email) setEmail(p.email);
+      if (p.phone) setPhone(p.phone);
     }
   }, []);
 
@@ -201,7 +199,7 @@ export default function SettingsPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <div className="text-[10px] font-extrabold uppercase tracking-widest text-[#D97757] mb-2">{tr('Current Plan', 'الخطة الحالية')}</div>
-                  <div className="text-2xl font-extrabold">Growth</div>
+                  <div className="text-2xl font-extrabold">{tr('Growth', 'نمو')}</div>
                   <div className="text-sm text-slate-300 mt-1">{currency} 299<span className="text-xs text-slate-400">/mo</span></div>
                 </div>
                 <div className="text-end">

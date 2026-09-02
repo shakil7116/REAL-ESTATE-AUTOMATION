@@ -172,7 +172,7 @@ export default function DashboardPage() {
   const pulseBadge = lang === 'ar'
     ? `نبض المحفظة المباشر · ${liveNow} +ضريبة`
     : `Live portfolio pulse · ${liveNow} VAT`;
-  const heading = lang === 'ar' ? 'محفكتك، بوضوح.' : 'Your portfolio, in focus.';
+  const heading = lang === 'ar' ? 'محفظتك، بوضوح.' : 'Your portfolio, in focus.';
   const subheading = lang === 'ar'
     ? 'نظرة واضحة على العمل الذي يهم هذا الأسبوع.'
     : 'A clear read on the work that matters this week.';

@@ -188,7 +188,7 @@ export default function GlobalCopilot({ lang }: GlobalCopilotProps) {
           className={[
             'fixed bottom-5 z-40 group flex items-center gap-2',
             isRtl ? 'left-5' : 'right-5',
-            'bg-[#132B25] hover:bg-[#1A3831] text-white rounded-full pl-4 pr-5 py-3 shadow-2xl transition-all',
+            'bg-[#132B25] hover:bg-[#1A3831] text-white rounded-full py-3 shadow-2xl transition-all ps-4 pe-5 py-3 shadow-2xl transition-all',
           ].join(' ')}
           aria-label={t('Open Copilot', 'فتح المساعد')}
         >
@@ -275,7 +275,7 @@ export default function GlobalCopilot({ lang }: GlobalCopilotProps) {
                     <button
                       key={i}
                       onClick={() => send(s)}
-                      className="w-full text-left p-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 hover:border-[#D97757] hover:bg-orange-50/30 transition-colors flex items-center justify-between gap-2 group"
+                      className="w-full p-start p-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 hover:border-[#D97757] hover:bg-orange-50/30 transition-colors flex items-center justify-between gap-2 group"
                     >
                       <span className="font-medium">{s}</span>
                       <ChevronRight className={['w-3.5 h-3.5 text-slate-300 group-hover:text-[#D97757]', isRtl ? 'rotate-180' : ''].join(' ')} />

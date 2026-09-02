@@ -69,6 +69,7 @@ export default function ReportsPage() {
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const monthlyRevenue = monthNames.map((month, i) => {
     const monthPayments = payments.filter(p => {
+      if (!p.payment_date) return false;
       const d = new Date(p.payment_date);
       return d.getMonth() === i && p.status === 'received';
     });

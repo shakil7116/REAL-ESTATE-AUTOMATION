@@ -267,11 +267,11 @@ export default function LeasesPage() {
             </div>
             <div>
               <label className="text-xs font-bold text-slate-600 mb-1.5 block">{tr(`Monthly Rent (${currency})`, `الإيجار الشهري (${currency})`)}</label>
-              <input required type="number" min="0" className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D97757]/30 focus:border-[#D97757]" value={form.monthly_rent} onChange={e => setForm({ ...form, monthly_rent: e.target.value })} />
+              <input required type="number" min="0" inputMode="decimal" className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D97757]/30 focus:border-[#D97757] font-semibold" value={form.monthly_rent} onChange={e => { const raw = e.target.value.replace(/^0+(\d+\.?\d*)/, '$1'); setForm({ ...form, monthly_rent: raw }); }} />
             </div>
             <div>
               <label className="text-xs font-bold text-slate-600 mb-1.5 block">{tr('Payment Day (1–31)', 'يوم الدفع (1–31)')}</label>
-              <input required type="number" min="1" max="31" className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D97757]/30 focus:border-[#D97757]" value={form.payment_day} onChange={e => setForm({ ...form, payment_day: e.target.value })} />
+              <input required type="number" min="1" max="31" inputMode="numeric" className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D97757]/30 focus:border-[#D97757] font-semibold" value={form.payment_day} onChange={e => { const raw = e.target.value.replace(/^0+(\d+)/, '$1'); setForm({ ...form, payment_day: raw }); }} />
             </div>
             <div>
               <label className="text-xs font-bold text-slate-600 mb-1.5 block">{tr('Start Date', 'تاريخ البدء')}</label>
@@ -283,7 +283,7 @@ export default function LeasesPage() {
             </div>
             <div>
               <label className="text-xs font-bold text-slate-600 mb-1.5 block">{tr(`Security Deposit (${currency})`, `وديعة التأمين (${currency})`)}</label>
-              <input type="number" min="0" className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D97757]/30 focus:border-[#D97757]" value={form.security_deposit} onChange={e => setForm({ ...form, security_deposit: e.target.value })} />
+              <input type="number" min="0" inputMode="decimal" className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D97757]/30 focus:border-[#D97757] font-semibold" value={form.security_deposit} onChange={e => { const raw = e.target.value.replace(/^0+(\d+\.?\d*)/, '$1'); setForm({ ...form, security_deposit: raw }); }} />
             </div>
             <div>
               <label className="text-xs font-bold text-slate-600 mb-1.5 block">{tr('Payment Method', 'طريقة الدفع')}</label>

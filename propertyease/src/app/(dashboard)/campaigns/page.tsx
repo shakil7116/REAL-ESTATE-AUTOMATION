@@ -203,11 +203,11 @@ export default function CampaignsPage() {
             </div>
             <div>
               <label className="text-xs font-bold text-slate-600 mb-1.5 block">{tr(`Budget (${currency})`, `الميزانية (${currency})`)}</label>
-              <input required type="number" min="0" placeholder={tr(`Budget (${currency})`, 'الميزانية')} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D97757]/30 focus:border-[#D97757]" value={form.budget} onChange={e => setForm({ ...form, budget: e.target.value })} />
+              <input required type="number" min="0" inputMode="numeric" placeholder={tr(`Budget (${currency})`, 'الميزانية')} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D97757]/30 focus:border-[#D97757] font-semibold" value={form.budget} onChange={e => { const raw = e.target.value.replace(/^0+(\d+)/, '$1'); setForm({ ...form, budget: raw }); }} />
             </div>
             <div>
               <label className="text-xs font-bold text-slate-600 mb-1.5 block">{tr(`Spent (${currency})`, `المصروف (${currency})`)}</label>
-              <input type="number" min="0" placeholder={tr(`Spent (${currency})`, 'المصروف')} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D97757]/30 focus:border-[#D97757]" value={form.spent} onChange={e => setForm({ ...form, spent: e.target.value })} />
+              <input type="number" min="0" inputMode="numeric" placeholder={tr(`Spent (${currency})`, 'المصروف')} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D97757]/30 focus:border-[#D97757] font-semibold" value={form.spent} onChange={e => { const raw = e.target.value.replace(/^0+(\d+)/, '$1'); setForm({ ...form, spent: raw }); }} />
             </div>
             <div>
               <label className="text-xs font-bold text-slate-600 mb-1.5 block">{tr('Start Date', 'تاريخ البدء')}</label>

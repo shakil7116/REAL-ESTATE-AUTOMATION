@@ -16,6 +16,8 @@ type AssertionType =
   | 'regex'
   | 'max_length'
   | 'min_length'
+  | 'json_path_max_length'
+  | 'json_path_min_length'
   | 'is_json'
   | 'json_path_equals'
   | 'json_path_exists'
@@ -267,7 +269,7 @@ async function callLLM(system: string, user: string): Promise<string> {
       }
       return JSON.stringify({
         en: {
-          headline: 'Luxurious 2BR Apartment in West Bay with Sea View',
+          headline: '2BR in West Bay with Sea View',
           body: 'Spacious 2-bedroom, 2-bathroom apartment in the heart of West Bay. 1,200 sqft of bright living space with pool, gym, and stunning sea views.',
           hashtags: ['#DohaRentals', '#WestBay', '#PropertyEase', '#QatarRealEstate', '#2BHApartment'],
           cta: 'Book a private viewing today',
@@ -363,6 +365,30 @@ function runAssertion(output: string, assertion: Assertion): { passed: boolean; 
         passed: output.length >= Number(assertion.value),
         reason: `expected output ≥ ${assertion.value} chars (got ${output.length})`,
       };
+    case 'json_path_max_length': {
+      try {
+        const obj = JSON.parse(output);
+        const v = assertion.field!.split('.').reduce((o: any, k) => o?.[k], obj);
+        return {
+          passed: typeof v === 'string' && v.length <= Number(assertion.value),
+          reason: `expected ${assertion.field}.length ≤ ${assertion.value} (got ${(v as string)?.length})`,
+        };
+      } catch {
+        return { passed: false, reason: `output is not JSON, can't check ${assertion.field}` };
+      }
+    }
+    case 'json_path_min_length': {
+      try {
+        const obj = JSON.parse(output);
+        const v = assertion.field!.split('.').reduce((o: any, k) => o?.[k], obj);
+        return {
+          passed: typeof v === 'string' && v.length >= Number(assertion.value),
+          reason: `expected ${assertion.field}.length ≥ ${assertion.value} (got ${(v as string)?.length})`,
+        };
+      } catch {
+        return { passed: false, reason: `output is not JSON, can't check ${assertion.field}` };
+      }
+    }
     case 'is_json': {
       try {
         JSON.parse(output);

@@ -81,8 +81,8 @@ export default function TenantsPage() {
   };
 
   const filtered = tenants.filter(t =>
-    t.name.toLowerCase().includes(search.toLowerCase()) ||
-    t.phone.includes(search) ||
+    (t.name ?? '').toLowerCase().includes(search.toLowerCase()) ||
+    (t.phone ?? '').toString().includes(search) ||
     (t.email ?? '').toLowerCase().includes(search.toLowerCase()) ||
     (t.company ?? '').toLowerCase().includes(search.toLowerCase())
   );
@@ -101,7 +101,7 @@ export default function TenantsPage() {
   const activeTenantsCount = tenants.length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir={isRtl ? 'rtl' : 'ltr'}>
       <PageHeader
         title={tr('Tenants & Leads', 'المستأجرون والعملاء')}
         subtitle={tr('Manage your tenant profiles and leasing pipeline', 'إدارة ملفات المستأجرين وخط أنابيب التأجير')}

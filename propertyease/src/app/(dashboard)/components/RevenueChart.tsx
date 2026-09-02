@@ -42,6 +42,7 @@ export default function RevenueChart({ lang = 'en', paymentData, currency = 'QAR
     paymentData
       .filter(p => p.status === 'received')
       .forEach(p => {
+        if (!p.payment_date) return;
         const d = new Date(p.payment_date);
         const key = months[d.getMonth()];
         monthMap[key] = (monthMap[key] || 0) + p.amount;
@@ -78,7 +79,7 @@ export default function RevenueChart({ lang = 'en', paymentData, currency = 'QAR
         <div className="flex items-baseline gap-3 mb-2">
           <span className="text-xl font-extrabold text-slate-400">{currencySymbol}</span>
           <span className="text-4xl font-extrabold text-[#0D2A24] tracking-tight">{displayTotal}M</span>
-          <span className="inline-flex items-center gap-0.5 text-sm font-bold text-emerald-600 ml-auto">
+          <span className="inline-flex items-center gap-0.5 text-sm font-bold text-emerald-600 me-auto">
             <TrendingUp className="w-4 h-4" />
             8.4%
           </span>
