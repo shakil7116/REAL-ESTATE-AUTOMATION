@@ -75,8 +75,8 @@ export default function PropertiesPage() {
       ]);
       const pData = await pRes.json();
       const uData = await uRes.json();
-      if (pData.success) setProperties(pData.data as Property[]);
-      if (uData.success) setUnits(uData.data as Unit[]);
+      if (pData.ok) setProperties(pData.data as Property[]);
+      if (uData.ok) setUnits(uData.data as Unit[]);
     } catch {
       // silently fail
     } finally {
@@ -95,7 +95,7 @@ export default function PropertiesPage() {
         body: JSON.stringify({ ...form, total_units: Number(form.total_units) }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.ok) {
         notifyChange('property_created', tr(
           `Property "${form.name}" created`,
           `تم إنشاء العقار "${form.name}"`,
@@ -328,7 +328,7 @@ export default function PropertiesPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-bold text-slate-600 mb-1.5 block">{tr('Property Name', 'اسم العقار')}</label>
-              <input required placeholder={tr('e.g. Marina Tower', 'مثال: برج مارينا')} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D97757]/30 focus:border-[#D97757]" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+              <input required placeholder={tr('e.g. Al Mansura Complex', 'مثال: مجمع المنصورة')} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D97757]/30 focus:border-[#D97757]" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
             </div>
             <div>
               <label className="text-xs font-bold text-slate-600 mb-1.5 block">{tr('Total Units', 'إجمالي الوحدات')}</label>
