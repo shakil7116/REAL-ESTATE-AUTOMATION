@@ -38,7 +38,7 @@ export default function CampaignsPage() {
       setLoading(true);
       const res = await fetch('/api/campaigns', { cache: 'no-store' });
       const data = await res.json();
-      if (data.success) setCampaigns(data.data as AdCampaign[]);
+      if (data.ok) setCampaigns(data.data as AdCampaign[]);
     } catch { /* silently fail */ } finally { setLoading(false); }
   };
 
@@ -53,7 +53,7 @@ export default function CampaignsPage() {
         body: JSON.stringify({ ...form, budget: Number(form.budget), spent: Number(form.spent) }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.ok) {
         notifyChange('campaign_created', `Campaign "${form.name}" created`);
         setShowForm(false);
         setForm({ name: '', platform: 'meta', budget: '', spent: '0', start_date: '', end_date: '', target_audience: '', objective: '', status: 'active' });

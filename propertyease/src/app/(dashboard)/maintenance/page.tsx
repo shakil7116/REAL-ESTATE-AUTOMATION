@@ -49,9 +49,9 @@ export default function MaintenancePage() {
       const mData = await mRes.json();
       const tData = await tRes.json();
       const uData = await uRes.json();
-      if (mData.success) setTickets(mData.data as MaintenanceTicket[]);
-      if (tData.success) setTenants(tData.data as Tenant[]);
-      if (uData.success) setUnits(uData.data as Unit[]);
+      if (mData.ok) setTickets(mData.data as MaintenanceTicket[]);
+      if (tData.ok) setTenants(tData.data as Tenant[]);
+      if (uData.ok) setUnits(uData.data as Unit[]);
     } catch {
       setError('Failed to load data');
     } finally {
@@ -70,7 +70,7 @@ export default function MaintenancePage() {
         body: JSON.stringify(form),
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.ok) {
         notifyChange('ticket_created', `Ticket "${form.title}" created`);
         setShowForm(false);
         setForm({ unit_id: '', tenant_id: '', title: '', description: '', priority: 'medium', category: '' });

@@ -35,8 +35,8 @@ export default function PaymentsPage() {
       ]);
       const pData = await pRes.json();
       const tData = await tRes.json();
-      if (pData.success) setPayments(pData.data as Payment[]);
-      if (tData.success) setTenants(tData.data as Tenant[]);
+      if (pData.ok) setPayments(pData.data as Payment[]);
+      if (tData.ok) setTenants(tData.data as Tenant[]);
     } catch {
       // silently fail
     } finally {
@@ -55,7 +55,7 @@ export default function PaymentsPage() {
         body: JSON.stringify({ ...form, amount: Number(form.amount) }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.ok) {
         notifyChange('payment_recorded', `Payment of ${currencySymbol} ${form.amount} recorded`);
         setShowForm(false);
         setForm({ lease_id: '', tenant_id: '', amount: '', payment_date: '', due_date: '', payment_type: 'rent', payment_method: 'pdc', status: 'pending', notes: '' });

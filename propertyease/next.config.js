@@ -32,11 +32,14 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // ── CRITICAL FIX: prevent browser serving stale JS chunks ──
-        // This forces re-download of all static assets so corrupted chunks never persist
+        // Hashed static assets are immutable for 1 year — the filename hash
+        // is the cache buster, so a new deploy produces new filenames. This
+        // is the Next.js recommended setting; previously set to `no-store`
+        // which forced a revalidation round-trip on every chunk every nav
+        // and caused ~10s page transitions.
         source: '/_next/static/(.*)',
         headers: [
-          { key: 'Cache-Control', value: 'no-store, max-age=0' },
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
       },
       {

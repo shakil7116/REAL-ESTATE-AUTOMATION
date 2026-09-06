@@ -5,49 +5,6 @@ All notable changes to PropertyEase will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Fixed — Qatar-only data hygiene (2026-09-05)
-
-Audit found five user-facing surfaces still leaking UAE/Dubai data after the
-2026-09-02 P0 sweep. All addressed at code level — no live surface now
-references Dubai, Abu Dhabi, Sharjah, Palm Jumeirah, or any UAE city.
-
-- **`src/lib/seed.ts`** — Legacy UAE/Dubai seeder removed entirely
-  (`seedSampleData()` is now an intentional no-op shim). The 105-line
-  block that wrote "Palm Residence", "Marina Tower Dubai", "Business Hub
-  Plaza Dubai", and "Al Nahda Heights Sharjah" into the fallback bundle
-  was the root cause of the fictional activity feed the dashboard
-  surfaced. Explanatory comments retained so future agents don't
-  re-introduce it.
-- **`src/components/CopilotPanel.tsx`** — `portfolioData`, `aiInsights`,
-  and `demoResponses` rewritten to reference Qatar seed entities
-  (Al Mansura B-201, Marina Tower at The Pearl P-1801, Khalid
-  Al-Mansoori, Priya Sharma, Asmaco 303). Smart-action "Approve New
-  Tenant" desc: "2 pending" → "1 pending" to match actual data.
-- **`src/app/api/copilot/route.ts`** — `demoResponses` already on Qatar
-  entities (carried from prior session); verified clean.
-- **`src/app/page.tsx`** — Marketing tiles "Palm Residence 12A" /
-  "Marina Tower 7B" / "QAR 31,200" → "Al Mansura A-101" /
-  "Marina Tower P-1402" / "QAR 13,500".
-- **`src/app/(dashboard)/properties/page.tsx`** — Property name
-  placeholder: "e.g. Al Mansura Complex" / "مثال: مجمع المنصورة".
-- **`src/components/PropertyModal.tsx`** — Country default `'UAE'` → `'Qatar'`
-  (3 sites: initial state, edit-mode fallback, reset); address placeholder
-  "e.g. Palm Jumeirah, Dubai" → "e.g. Najma Street, Al Mansura"; city
-  placeholder "e.g. Dubai" → "e.g. Doha"; city datalist swapped from
-  8 UAE cities to 8 Qatari cities (Doha, Al Rayyan, Al Wakrah, Al Khor,
-  Lusail, Al Thumama, The Pearl, Msheireb).
-
-### Kept (intentional, not regressions)
-
-- `src/context/CountryContext.tsx` AE/UAE entry — UAE is a supported
-  future market per the product brief; only the create-property form
-  *defaults* were UAE, and those are now Qatar.
-- `src/components/CopilotPanel.tsx:193` regex `/AED|QAR|\s/g` — this is
-  a currency-prefix stripper for display values, not data.
-- `src/lib/seed.ts:53-77, 103` comments documenting the removed seeder.
-
 ## [1.2.0] — 2026-09-05
 
 ### Fixed — Qatar-only data hygiene

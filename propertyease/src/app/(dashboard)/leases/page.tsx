@@ -51,10 +51,10 @@ export default function LeasesPage() {
         fetch('/api/payments', { cache: 'no-store' }),
       ]);
       const [lData, tData, uData, payData] = await Promise.all([lRes.json(), tRes.json(), uRes.json(), payRes.json()]);
-      if (lData.success) setLeases(lData.data as Lease[]);
-      if (tData.success) setTenants(tData.data as Tenant[]);
-      if (uData.success) setUnits(uData.data as Unit[]);
-      if (payData.success) setPayments(payData.data as Payment[]);
+      if (lData.ok) setLeases(lData.data as Lease[]);
+      if (tData.ok) setTenants(tData.data as Tenant[]);
+      if (uData.ok) setUnits(uData.data as Unit[]);
+      if (payData.ok) setPayments(payData.data as Payment[]);
     } catch { /* silently fail */ } finally { setLoading(false); }
   };
 
@@ -74,7 +74,7 @@ export default function LeasesPage() {
         }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.ok) {
         notifyChange('lease_created', tr('Lease created', 'تم إنشاء العقد'));
         setShowForm(false);
         setForm({ tenant_id: '', unit_id: '', start_date: '', end_date: '', monthly_rent: '', payment_day: '1', payment_method: 'pdc', security_deposit: '', status: 'active' });

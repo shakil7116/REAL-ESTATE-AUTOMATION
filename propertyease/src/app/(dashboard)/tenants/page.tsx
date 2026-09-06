@@ -48,9 +48,9 @@ export default function TenantsPage() {
         fetch('/api/units', { cache: 'no-store' }),
       ]);
       const [tData, lData, uData] = await Promise.all([tRes.json(), lRes.json(), uRes.json()]);
-      if (tData.success) setTenants(tData.data as Tenant[]);
-      if (lData.success) setLeads(lData.data as Lead[]);
-      if (uData.success) setUnits(uData.data as Unit[]);
+      if (tData.ok) setTenants(tData.data as Tenant[]);
+      if (lData.ok) setLeads(lData.data as Lead[]);
+      if (uData.ok) setUnits(uData.data as Unit[]);
     } catch {
       // silently fail
     } finally {
@@ -69,7 +69,7 @@ export default function TenantsPage() {
         body: JSON.stringify(form),
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.ok) {
         notifyChange('tenant_created', tr(`Tenant "${form.name}" created`, `تم إنشاء المستأجر "${form.name}"`));
         setShowForm(false);
         setForm({ name: '', email: '', phone: '', phone2: '', company: '', nationality: '', notes: '' });

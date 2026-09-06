@@ -92,8 +92,8 @@ function UnitsContent() {
       const unitsData = await unitsRes.json();
       const propsData = await propsRes.json();
 
-      if (!unitsData.success) throw new Error(unitsData.error);
-      if (!propsData.success) throw new Error(propsData.error);
+      if (!unitsData.ok) throw new Error(unitsData.error);
+      if (!propsData.ok) throw new Error(propsData.error);
 
       setUnits(unitsData.data || []);
       setProperties(propsData.data || []);
@@ -117,7 +117,7 @@ function UnitsContent() {
     try {
       const res = await fetch(`/api/units?id=${id}`, { method: 'DELETE' });
       const data = await res.json();
-      if (!data.success) throw new Error(data.error);
+      if (!data.ok) throw new Error(data.error);
       setUnits(prev => prev.filter(u => u.id !== id));
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete');

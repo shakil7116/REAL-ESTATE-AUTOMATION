@@ -126,9 +126,20 @@ export default function RevenueChart({ lang = 'en', paymentData, currency = 'QAR
               tickLine={false}
               tickSize={0}
               dx={-8}
-              tick={hasData ? ({ x, y, value }: any) => (
-                <text x={x} y={y} textAnchor="end" fontSize="11" fill="#94A3B8" fontWeight="500">{(value / 1000000).toFixed(1)}</text>
-              ) : undefined}
+              tick={({ x, y, value }: any) => {
+                // Guard against undefined / NaN values when chartData is empty.
+                // Previously `tick={undefined}` let recharts' default formatter
+                // run on undefined, producing NaN labels.
+                const num = Number(value);
+                if (!Number.isFinite(num)) {
+                  return <text x={x} y={y} textAnchor="end" fontSize="11" fill="#94A3B8" fontWeight="500">0</text>;
+                }
+                return (
+                  <text x={x} y={y} textAnchor="end" fontSize="11" fill="#94A3B8" fontWeight="500">
+                    {(num / 1000000).toFixed(1)}
+                  </text>
+                );
+              }}
             />
             <Tooltip
               content={({ active, payload }) => {

@@ -36,7 +36,7 @@ export default function ReportsPage() {
       setLoading(true);
       const dashRes = await fetch('/api/dashboard', { cache: 'no-store' });
       const dashData = await dashRes.json();
-      if (dashData.success) setDashboardStats(dashData.data);
+      if (dashData.ok) setDashboardStats(dashData.data);
 
       const [pRes, uRes, payRes, tRes, cRes, lRes] = await Promise.all([
         fetch('/api/properties', { cache: 'no-store' }),
@@ -49,7 +49,7 @@ export default function ReportsPage() {
       const [pData, uData, payData, tData, cData, lData] = await Promise.all([
         pRes.json(), uRes.json(), payRes.json(), tRes.json(), cRes.json(), lRes.json(),
       ]);
-      if (!pData.success || !uData.success || !payData.success || !tData.success || !cData.success || !lData.success) throw new Error('Failed to load one or more data sources');
+      if (!pData.ok || !uData.ok || !payData.ok || !tData.ok || !cData.ok || !lData.ok) throw new Error('Failed to load one or more data sources');
       setProperties(pData.data || []);
       setUnits(uData.data || []);
       setPayments(payData.data || []);

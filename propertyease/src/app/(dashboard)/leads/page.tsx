@@ -39,8 +39,8 @@ export default function LeadsPage() {
       ]);
       const lData = await lRes.json();
       const pData = await pRes.json();
-      if (lData.success) setLeads(lData.data as Lead[]);
-      if (pData.success) setProperties(pData.data as Property[]);
+      if (lData.ok) setLeads(lData.data as Lead[]);
+      if (pData.ok) setProperties(pData.data as Property[]);
     } catch {
       // silently fail
     } finally {
@@ -59,7 +59,7 @@ export default function LeadsPage() {
         body: JSON.stringify({ ...form, budget: form.budget ? Number(form.budget) : null }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.ok) {
         notifyChange('lead_created', `Lead "${form.name}" added`);
         setShowForm(false);
         setForm({ name: '', phone: '', email: '', source: 'direct', budget: '', property_interest: '', notes: '' });
@@ -78,7 +78,7 @@ export default function LeadsPage() {
         body: JSON.stringify({ status }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.ok) {
         notifyChange('lead_updated', `Lead status updated to ${status}`);
         fetchData();
       }

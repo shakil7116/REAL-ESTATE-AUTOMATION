@@ -4,22 +4,109 @@ import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import {
   DollarSign, Building2, Mail, Wrench,
-  Users, FileText,
-  Clock,
+  Users, FileText, Clock,
 } from 'lucide-react';
+import type { Payment } from '@/lib/database';
 import { useCountry } from '@/context/CountryContext';
 import { useClientDate } from '@/lib/useClientTime';
 import { StatCard, KpiRow, Card, Skeleton } from '@/components/ui';
 
-// Recharts is ~1MB minified. Lazy-load the chart so it doesn't bloat the
-// initial dashboard bundle — users see the stat cards instantly.
+// ── Activity row shape (from /api/activities) ──────────────────────────
+interface ActivityRow {
+  id: string;
+  action: string;
+  entity: string;
+  entity_id: string;
+  details: string | null;
+  user_id?: string;
+  created_at: string;
+}
+
+// Activity `action` → icon + color + EN/AR formatter. `details` is JSON
+// (stored as a string in the Activity table). Formatter receives the
+// parsed object and returns a human-readable sentence.
+type IconComponent = typeof DollarSign;
+type ActivityFormatter = (d: any) => string;
+
+const ACTIVITY_META: Record<string, {
+  icon: IconComponent; color: string; en: ActivityFormatter; ar: ActivityFormatter;
+}> = {
+  payment_received: {
+    icon: DollarSign, color: '#22C55E',
+    en: (d) => `Rent received from ${d?.tenant ?? 'tenant'} (${d?.property ?? ''} ${d?.unit ?? ''})`,
+    ar: (d) => `تم استلام إيجار من ${d?.tenant ?? 'مستأجر'} (${d?.property ?? ''} ${d?.unit ?? ''})`,
+  },
+  payment_overdue: {
+    icon: Clock, color: '#EF4444',
+    en: (d) => `Overdue payment — ${d?.tenant ?? 'tenant'} (${d?.property ?? ''} ${d?.unit ?? ''})`,
+    ar: (d) => `دفعة متأخرة — ${d?.tenant ?? 'مستأجر'} (${d?.property ?? ''} ${d?.unit ?? ''})`,
+  },
+  maintenance_created: {
+    icon: Wrench, color: '#F59E0B',
+    en: (d) => `New maintenance — ${d?.title ?? ''} (${d?.property ?? ''} ${d?.unit ?? ''})`,
+    ar: (d) => `طلب صيانة جديد — ${d?.title ?? ''} (${d?.property ?? ''} ${d?.unit ?? ''})`,
+  },
+  maintenance_completed: {
+    icon: Wrench, color: '#22C55E',
+    en: (d) => `Maintenance completed — ${d?.title ?? ''} (${d?.property ?? ''} ${d?.unit ?? ''})`,
+    ar: (d) => `اكتملت الصيانة — ${d?.title ?? ''} (${d?.property ?? ''} ${d?.unit ?? ''})`,
+  },
+  lease_signed: {
+    icon: FileText, color: '#3B82F6',
+    en: (d) => `Lease signed — ${d?.tenant ?? 'tenant'} (${d?.property ?? ''} ${d?.unit ?? ''})`,
+    ar: (d) => `تم توقيع عقد — ${d?.tenant ?? 'مستأجر'} (${d?.property ?? ''} ${d?.unit ?? ''})`,
+  },
+  lease_renewed: {
+    icon: FileText, color: '#3B82F6',
+    en: (d) => `Lease renewed — ${d?.tenant ?? 'tenant'} (${d?.property ?? ''} ${d?.unit ?? ''})`,
+    ar: (d) => `تم تجديد عقد — ${d?.tenant ?? 'مستأجر'} (${d?.property ?? ''} ${d?.unit ?? ''})`,
+  },
+  lead_created: {
+    icon: Users, color: '#8B5CF6',
+    en: (d) => `New lead — ${d?.name ?? ''} (${d?.interest ?? ''})`,
+    ar: (d) => `عميل جديد — ${d?.name ?? ''} (${d?.interest ?? ''})`,
+  },
+  lead_converted: {
+    icon: Users, color: '#22C55E',
+    en: (d) => `Lead converted — ${d?.name ?? ''}`,
+    ar: (d) => `تم تحويل العميل — ${d?.name ?? ''}`,
+  },
+};
+const FALLBACK_META = {
+  icon: FileText as IconComponent, color: '#94A3B8',
+  en: () => 'Activity recorded',
+  ar: () => 'نشاط مسجل',
+};
+
+function parseActivityDetails(raw: string | null): any {
+  if (!raw) return {};
+  try { return JSON.parse(raw); } catch { return {}; }
+}
+
+function relativeTime(iso: string, lang: 'en' | 'ar'): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const m = Math.round(diffMs / 60000);
+  const h = Math.round(diffMs / 3600000);
+  const d = Math.round(diffMs / 86400000);
+  if (lang === 'ar') {
+    if (m < 1) return 'الآن';
+    if (m < 60) return `منذ ${m} دقيقة`;
+    if (h < 24) return `منذ ${h} ساعة`;
+    return `منذ ${d} يوم`;
+  }
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m} min ago`;
+  if (h < 24) return `${h} hr ago`;
+  return `${d} day${d === 1 ? '' : 's'} ago`;
+}
+
+// ── Lazy-load Recharts (~1MB) so the dashboard bundle stays slim ───────
 const RevenueChart = dynamic(() => import('../components/RevenueChart'), {
   ssr: false,
   loading: () => <Card><Skeleton className="h-56" /></Card>,
 });
 
-// ── Live mock data (syncs to Supabase when backend is connected) ──────────
-// Empty by design — only real data from API is shown
+// Empty stats — only real API data is shown. No fake numbers.
 const EMPTY_STATS = {
   totalRevenue: 0,
   occupancyRate: 0,
@@ -31,86 +118,13 @@ const EMPTY_STATS = {
   overduePayments: 0,
 };
 
-const RECENT_ACTIVITY_EN = [
-  {
-    id: 1,
-    text: 'RENT received from Marina Tower 4B',
-    time: '2 min ago',
-    icon: DollarSign,
-    color: '#22C55E',
-  },
-  {
-    id: 2,
-    text: 'New maintenance request — Water leak in Palm Residence 12A',
-    time: '18 min ago',
-    icon: Wrench,
-    color: '#F59E0B',
-  },
-  {
-    id: 3,
-    text: 'Lease signed — Business Hub 3A (2-year term)',
-    time: '1 hr ago',
-    icon: FileText,
-    color: '#3B82F6',
-  },
-  {
-    id: 4,
-    text: 'New lead inquiry — Studio at Marina Tower, QAR 55K',
-    time: '2 hrs ago',
-    icon: Users,
-    color: '#8B5CF6',
-  },
-  {
-    id: 5,
-    text: 'PDC returned — Tenant 8C, Palm Residence',
-    time: '3 hrs ago',
-    icon: Clock,
-    color: '#EF4444',
-  },
-];
-
-const RECENT_ACTIVITY_AR = [
-  {
-    id: 1,
-    text: 'تم استلام إيجار بقيمة 12,500 ريال من برج Marina 4B',
-    time: 'منذ دقيقتين',
-    icon: DollarSign,
-    color: '#22C55E',
-  },
-  {
-    id: 2,
-    text: 'طلب صيانة جديد — تسرب مياه في Palm Residence 12A',
-    time: 'منذ 18 دقيقة',
-    icon: Wrench,
-    color: '#F59E0B',
-  },
-  {
-    id: 3,
-    text: 'تم توقيع عقد إيجار — Business Hub 3A (مدة سنتان)',
-    time: 'منذ ساعة',
-    icon: FileText,
-    color: '#3B82F6',
-  },
-  {
-    id: 4,
-    text: 'استفسار عميل جديد — استوديو في برج Marina، 55 ألف ريال',
-    time: 'منذ ساعتين',
-    icon: Users,
-    color: '#8B5CF6',
-  },
-  {
-    id: 5,
-    text: 'شيك PDC مردود — مستأجر 8C، Palm Residence',
-    time: 'منذ 3 ساعات',
-    icon: Clock,
-    color: '#EF4444',
-  },
-];
-
 export default function DashboardPage() {
   const [lang, setLang] = useState<'en' | 'ar'>('en');
   const { country, currency, currencySymbol } = useCountry();
-  const [stats, setStats] = useState(EMPTY_STATS);  const dataFetchedRef = useRef(false);
+  const [stats, setStats] = useState(EMPTY_STATS);
+  const [activities, setActivities] = useState<ActivityRow[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const dataFetchedRef = useRef(false);
 
   // Load language preference
   useEffect(() => {
@@ -120,20 +134,21 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Fetch dashboard stats once on mount — render empty state immediately, fetch in background
+  // Fetch dashboard stats + activities + payments in parallel — render
+  // empty state immediately, fetch in background.
   useEffect(() => {
     if (dataFetchedRef.current) return;
     dataFetchedRef.current = true;
 
-    // Render immediately — no loading spinner delay
-    fetch('/api/dashboard')
-      .then((r) => r.json())
-      .then((res) => {
-        if (res.success && res.data) {
-          setStats(res.data);
-        }
-      })
-      .catch(() => {});
+    Promise.all([
+      fetch('/api/dashboard').then((r) => r.json()).catch(() => null),
+      fetch('/api/activities?limit=8').then((r) => r.json()).catch(() => null),
+      fetch('/api/payments').then((r) => r.json()).catch(() => null),
+    ]).then(([dashRes, actRes, payRes]) => {
+      if (dashRes?.ok && dashRes.data) setStats(dashRes.data);
+      if (actRes?.ok && Array.isArray(actRes.data)) setActivities(actRes.data as ActivityRow[]);
+      if (payRes?.ok && Array.isArray(payRes.data)) setPayments(payRes.data as Payment[]);
+    });
   }, []);
 
   const s = stats;
@@ -183,7 +198,7 @@ export default function DashboardPage() {
   const recentActivity = lang === 'ar' ? 'النشاط الأخير' : 'Recent activity';
   const pulseText = lang === 'ar' ? 'نبض محفظتك' : 'The pulse across your portfolio';
   const viewAll = lang === 'ar' ? 'عرض الكل ←' : 'View all →';
-  const activityData = lang === 'ar' ? RECENT_ACTIVITY_AR : RECENT_ACTIVITY_EN;
+  const noActivity = lang === 'ar' ? 'لا يوجد نشاط حديث' : 'No recent activity';
 
   // No fake numbers: show "—" when there's no data
   const formatValue = (value: number) => {
@@ -197,7 +212,6 @@ export default function DashboardPage() {
     <div className="flex gap-6">
       {/* ══════════════ Main Content ══════════════ */}
       <div className="flex-1 min-w-0">
-
 
         {/* Live Pulse Badge */}
         <div className="mb-4">
@@ -255,7 +269,13 @@ export default function DashboardPage() {
 
         {/* ── Revenue Trend Chart ── */}
         <div className="mb-6">
-          <RevenueChart lang={lang} currency={currency} currencySymbol={displayCurrency} hasData={stats.totalRevenue > 0} />
+          <RevenueChart
+            lang={lang}
+            currency={currency}
+            currencySymbol={displayCurrency}
+            hasData={stats.totalRevenue > 0}
+            paymentData={payments}
+          />
         </div>
 
         {/* ── Recent Activity ── */}
@@ -272,26 +292,37 @@ export default function DashboardPage() {
               {viewAll}
             </a>
           </div>
-          <div className="divide-y divide-slate-50">
-            {activityData.map((activity) => (
-              <div
-                key={activity.id}
-                className="px-6 py-3.5 flex items-center gap-4 hover:bg-slate-50/50 transition-colors"
-              >
-                <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: activity.color + '15' }}
-                >
-                  <activity.icon className="w-4 h-4" style={{ color: activity.color }} />
-                </div>
-                <p className="text-sm text-slate-700 flex-1 font-medium">{activity.text}</p>
-                <span className="text-xs text-slate-400 font-medium whitespace-nowrap flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {activity.time}
-                </span>
-              </div>
-            ))}
-          </div>
+          {activities.length === 0 ? (
+            <div className="px-6 py-12 text-center text-sm text-slate-400">{noActivity}</div>
+          ) : (
+            <div className="divide-y divide-slate-50">
+              {activities.slice(0, 8).map((a) => {
+                const meta = ACTIVITY_META[a.action] || FALLBACK_META;
+                const details = parseActivityDetails(a.details);
+                const text = (lang === 'ar' ? meta.ar : meta.en)(details);
+                const time = relativeTime(a.created_at, lang);
+                const Icon = meta.icon;
+                return (
+                  <div
+                    key={a.id}
+                    className="px-6 py-3.5 flex items-center gap-4 hover:bg-slate-50/50 transition-colors"
+                  >
+                    <div
+                      className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: meta.color + '15' }}
+                    >
+                      <Icon className="w-4 h-4" style={{ color: meta.color }} />
+                    </div>
+                    <p className="text-sm text-slate-700 flex-1 font-medium">{text}</p>
+                    <span className="text-xs text-slate-400 font-medium whitespace-nowrap flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {time}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
