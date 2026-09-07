@@ -5,6 +5,42 @@ All notable changes to PropertyEase will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] — 2026-09-06
+
+### Fixed — Data hygiene round 2: test data & stale in-memory state
+
+During QA playthrough, three stale test properties ("My Test Property" / UAE,
+"AL THUMAMA 103 UPDATED", "New Test Property") were found still living in the
+server's `globalThis.__PE_FALLBACK__` after repeated API mutations in dev.
+Root cause: in-memory state diverged from disk on every POST/DELETE because
+the server process caches the bundle and only re-reads from `.data/fallback.json`
+on a 5-second timer (`DISK_RELOAD_INTERVAL_MS`) or when `POST /api/debug/reset`
+is called.
+
+- **`.data/fallback.json`** — Removed three stale test entries (`b371601c…
+  "New Test Property"`, plus any orphaned units/leases/payments). Bundle
+  now contains exactly the four Qatar seed properties from `ensureRichDemoData()`:
+  Al Mansura Complex, Asmaco Residence, Al Thumama Villas, The Pearl Residences.
+  Also fixed a pre-existing ad_campaigns list corruption (a malformed entry
+  that had appended three `activities` objects into the campaigns array) so
+  the JSON parses cleanly with 4 campaigns.
+- **Audit sweep** across all 12 dashboard pages + Copilot + copilot API +
+  landing page confirmed no remaining Dubai/UAE/Palm Jumeirah test-data
+  references. Two benign hits remain: the `/AED|QAR|\s/g` regex on
+  `CopilotPanel.tsx:193` (currency-prefix display-stripper) and a comment in
+  `dashboard/page.tsx` explaining the en-US fallback for unmapped countries.
+  Neither surfaces test data to the user.
+
+### Known limitation
+
+While the dev server runs, the in-memory `globalThis.__PE_FALLBACK__` is **not
+automatically synced** after a manual edit of `.data/fallback.json`. Call
+`POST /api/debug/reset` or restart `npm run dev` to pick up disk changes.
+The 5-second auto-reload window applies only to fresh API calls, not to
+mid-request mutations.
+
+---
+
 ## [1.2.0] — 2026-09-05
 
 ### Fixed — Qatar-only data hygiene

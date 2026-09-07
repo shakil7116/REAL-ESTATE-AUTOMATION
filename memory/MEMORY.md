@@ -40,10 +40,12 @@ memory/
 - [001: Prisma is the single source of truth for DB schema](decisions/001-prisma-as-source-of-truth.md) — `supabase-schema.sql` is deprecated, drop it
 - [002: v1 ships Qatar-only](decisions/002-qatar-only-v1.md) — GCC expansion deferred to v2
 - [003: Mobile wired to real API + eval harness design](decisions/003-mobile-api-wire-and-eval-harness.md) — Mobile app calls web API via session token in AsyncStorage; 3-prompt eval harness (stub mode); v1.1 scope documented
+- [004: Agent-based automation workflow](decisions/2026-09-07-agent-workflow.md) — Tasks assigned to agents per AGENTS.md contracts; product-owner orchestrates parallel handoffs
 
 ### Incidents
 - [2025-08-15: Cache fallback bug](incidents/2025-08-15-cache-fallback-bug.md) — service worker served marketing page from cache to dashboard route; v5 is the permanent fix
 - [2026-09-02: Mobile API integration](incidents/2026-09-02-mobile-api-integration.md) — Bearer token auth bridge, payments/maintenance pages, zero TS errors after SLATE_* scale + multiRemove fixes
+- [2026-09-07: Stale in-memory fallback state](incidents/2026-09-07-stale-fallback-state.md) — Manual edit of .data/fallback.json not picked up by live Next.js workers; requires full server restart to clear
 
 ### Patterns
 - [Form Modal](patterns/form-modal.md) — standard pattern for create/edit forms in modals
@@ -67,5 +69,5 @@ This file is the source of truth for "what do I need to know before working on t
 
 ---
 
-**Last updated:** 2026-09-02
+**Last updated:** 2026-09-07
 **Maintained by:** @product-owner
