@@ -14,7 +14,9 @@ memory/
 ├── decisions/              ← architectural decisions (ADRs)
 │   ├── 000-template.md
 │   ├── 001-prisma-as-source-of-truth.md
-│   └── 002-qatar-only-v1.md
+│   ├── 002-qatar-only-v1.md
+│   ├── 003-dev-fallback-vs-supabase.md
+│   └── 003-mobile-api-wire-and-eval-harness.md
 ├── incidents/              ← postmortems
 │   ├── 000-template.md
 │   └── 2025-08-15-cache-fallback-bug.md
@@ -41,6 +43,7 @@ memory/
 - [002: v1 ships Qatar-only](decisions/002-qatar-only-v1.md) — GCC expansion deferred to v2
 - [003: Mobile wired to real API + eval harness design](decisions/003-mobile-api-wire-and-eval-harness.md) — Mobile app calls web API via session token in AsyncStorage; 3-prompt eval harness (stub mode); v1.1 scope documented
 - [004: Agent-based automation workflow](decisions/2026-09-07-agent-workflow.md) — Tasks assigned to agents per AGENTS.md contracts; product-owner orchestrates parallel handoffs
+- [ADR-003: Dev fallback vs Supabase mode](decisions/003-dev-fallback-vs-supabase.md) — Local dev runs in FALLBACK mode (`.data/fallback.json`); startup banner in `database.ts` makes active backend impossible to miss. Status: Accepted
 
 ### Incidents
 - [2025-08-15: Cache fallback bug](incidents/2025-08-15-cache-fallback-bug.md) — service worker served marketing page from cache to dashboard route; v5 is the permanent fix
@@ -70,5 +73,5 @@ This file is the source of truth for "what do I need to know before working on t
 
 ---
 
-**Last updated:** 2026-09-07
+**Last updated:** 2026-09-08
 **Maintained by:** @product-owner
