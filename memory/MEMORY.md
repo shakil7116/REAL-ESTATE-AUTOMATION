@@ -53,6 +53,7 @@ memory/
 
 ### Patterns
 - [Form Modal](patterns/form-modal.md) — standard pattern for create/edit forms in modals
+- [Mobile i18n layer](../propertyease-mobile/lib/i18n.ts) — `t(key, vars?)` function + `setLocale()` / `initLocale()` with `I18nManager.forceRTL()`; all 9 mobile screens use it
 
 ### Cross-engine facts
 - [SW v5 cache fix](sw-v5-cache-fix.md) — service worker permanently fixed; never falls back to cached `/` for app routes
