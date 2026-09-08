@@ -2,7 +2,7 @@
 # Date: 2026-09-08
 
 ## Status
-Proposed — awaiting user confirmation
+Accepted — startup banner logs active backend mode on every dev server boot
 
 ## Context
 During local development, PropertyEase supports two data backends:
