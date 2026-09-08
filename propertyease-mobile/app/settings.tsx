@@ -2,8 +2,8 @@
  * SettingsScreen — PropertyEase mobile settings.
  *
  * Shows user info from stored session, language toggle (EN/AR),
- * country selector (QA/AE/SA/KW/BH/OM), and logout button.
- * All preferences are persisted in AsyncStorage.
+ * country selector (QA only — v1 ships Qatar-only per ADR-002),
+ * and logout button. All preferences are persisted in AsyncStorage.
  */
 import { useEffect, useState } from 'react';
 import {
@@ -18,11 +18,6 @@ import {
 
 const COUNTRIES = [
   { code: 'QA', name: 'Qatar', currency: 'QAR' },
-  { code: 'AE', name: 'UAE', currency: 'AED' },
-  { code: 'SA', name: 'Saudi Arabia', currency: 'SAR' },
-  { code: 'KW', name: 'Kuwait', currency: 'KWD' },
-  { code: 'BH', name: 'Bahrain', currency: 'BHD' },
-  { code: 'OM', name: 'Oman', currency: 'OMR' },
 ];
 
 export default function SettingsScreen() {

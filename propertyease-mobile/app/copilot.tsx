@@ -2,7 +2,9 @@
  * CopilotScreen — PropertyEase AI chat assistant.
  *
  * Sends messages to POST /api/copilot with auth token.
- * Falls back to demo responses when the API is unavailable or no OpenAI key is configured.
+ * Falls back to a placeholder when the API is unavailable or no OpenAI key is configured.
+ * Unlike previous versions, the fallback no longer fabricates portfolio numbers —
+ * those must come from the real API to avoid misleading users (see SPRINT item #3).
  */
 import { useRef, useState } from 'react';
 import {
@@ -23,11 +25,15 @@ interface ChatMessage {
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
+// DEMO_RESPONSES removed: they contained fabricated portfolio numbers (e.g. "QAR 228,360",
+// "18 open tickets") that do not match live data and risk misleading users into acting
+// on false figures. When the real /api/copilot endpoint is unreachable, we return a
+// transparent fallback instead of pretending to know the numbers.
 const DEMO_RESPONSES: Record<string, string> = {
-  collect: "💰 **Rent Collection Status**\n\n• Total pending: QAR 228,360\n• Overdue (>7 days): QAR 66,720 across 5 tenants\n• Auto-reminders sent today: 5",
-  maintenance: "🔧 **Maintenance Queue**\n\n• Open tickets: 18 (2 urgent)\n• In progress: 4\n• Resolved today: 3",
-  lease: "📋 **Lease Status**\n\n• Active contracts: 142\n• Expiring within 90 days: 18\n• Available units: 2",
-  insights: "🧠 **Today's Priorities**\n\n1. Follow up on 2 urgent maintenance tickets\n2. Send payment reminders to 5 overdue tenants\n3. Start lease renewal outreach for 18 upcoming expiries",
+  collect: "The rent-collection data is unavailable right now. Please connect to the network and try again.",
+  maintenance: "Maintenance status is currently unavailable. Please check your connection and retry.",
+  lease: "Lease information is currently unavailable. Please check your connection and retry.",
+  insights: "Portfolio insights require a live connection to the PropertyEase API. Please try again later.",
   default: "I'm here to help manage your portfolio. Ask me about rent collection, maintenance, leases, or get AI-powered insights.",
 };
 
