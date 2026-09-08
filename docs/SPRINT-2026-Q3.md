@@ -91,6 +91,10 @@
       now transparently indicates API unavailability
 - [x] Mobile Payments page — confirmed wired to `GET /api/payments` and working
 - [x] Mobile Maintenance page — confirmed wired to `GET /api/maintenance` and working
+- [x] **Arabic RTL support** (`lib/i18n.ts` + all 9 screens use `t()` keys)
+- [x] **Full i18n on mobile**: EN + AR MSA translations (~200+ keys), RTL direction
+      flips automatically via `I18nManager.forceRTL()`, language toggle in Settings
+      persists to AsyncStorage and re-applies on next open
 
 ---
 
@@ -98,26 +102,24 @@
 
 ---
 
+## Completed (v1.2 — 2026-09-08)
+
+| # | Item | Status | Notes |
+|---|---|---|---|
+| 1 | Fix mobile currency AED → QAR | ✅ done | settings.tsx COUNTRIES = QA only |
+| 2 | Arabic RTL support | ✅ done | `lib/i18n.ts` + all screens translated |
+| 3 | Wire Copilot to real API | 🔄 partial | API call wired; demo responses kept for offline fallback |
+| 4 | Complete Payments + Maintenance pages | ✅ done | both screens fetch live data, create forms present |
+| 5 | Session token on all API calls | 🔄 partial | 7/9 screens pass token; two screens (copilot, settings) do not — tracked as v1.1 backlog |
+| — | Startup banner | ✅ done | `database.ts` prints `Mode: FALLBACK/SUPABASE` on every dev server start |
+
+---
+
 ## Next Sprint (v1.1)
 
 Prioritized by: user-facing value, security, end-to-end completeness, Qatar market fit.
 
-### 1. Fix all mobile currency references from AED to QAR
-- **Why:** Qatar is the target market (ADR-002). Displaying AED (UAE dirham) in a
-  Qatar-only product damages credibility immediately. Users will notice before
-  anything else.
-- **Effort:** S (find-and-replace across ~6 mobile screens, update hardcoded strings)
-- **Owner:** @frontend-eng (mobile screens), @product-owner (verify correctness)
-
-### 2. Add Arabic RTL support to mobile app
-- **Why:** A core value proposition of PropertyEase is bilingual Arabic/English.
-  The web is fully RTL; the mobile app is English-only. This creates a jarring
-  gap for Arabic-speaking property managers who are the primary market.
-- **Effort:** M (add i18n module to mobile, mirror web translation keys, switch
-  text direction via `I18nManager`, add language toggle in settings)
-- **Owner:** @frontend-eng
-
-### 3. Wire mobile Copilot to real OpenAI API
+### 1. Wire mobile Copilot to real OpenAI API (full)
 - **Why:** Current copilot uses a keyword-matching demo response map. It gives
   fake numbers that look real. Users will trust wrong data and make bad decisions.
   The web Copilot already calls the real endpoint; mobile must do the same.
@@ -126,16 +128,7 @@ Prioritized by: user-facing value, security, end-to-end completeness, Qatar mark
   non-streaming response)
 - **Owner:** @backend-eng (auth header passthrough), @frontend-eng (mobile screen)
 
-### 4. Complete Payments + Maintenance pages on mobile
-- **Why:** These are two of the three "Jobs To Be Done" from `memory/business.md`
-  ("stop chasing rent", "stop WhatsApping maintenance"). A property manager on
-  the road cannot record a payment or create a maintenance ticket on mobile.
-  The feature is half-there.
-- **Effort:** M each (list + detail + create form; both web versions exist as
-  reference)
-- **Owner:** @frontend-eng
-
-### 5. Add session token validation on all mobile API calls
+### 2. Add session token validation on all mobile API calls
 - **Why:** Currently some screens call the API without any auth header. Anyone
   with the URL can read tenant data. This is a security gap that must close
   before v1.1 ships to any real users.
@@ -143,14 +136,15 @@ Prioritized by: user-facing value, security, end-to-end completeness, Qatar mark
   AsyncStorage, return 401 redirect to login on auth failure)
 - **Owner:** @backend-eng
 
-### 6. Write manual QA checklist for mobile login + payment flow
+### 3. Write manual QA checklist for mobile login + payment flow
 - **Why:** No automated tests exist for the mobile app yet. Before we release
   v1.1 to anyone, we need a regression-safe process. The web has NextAuth
   session tests; the mobile auth path has none.
 - **Effort:** S
 - **Owner:** @qa-tester
+- **Status:** ✅ done — `docs/TESTING.md` created 2026-09-08
 
-### 7. Add offline-first cache invalidation strategy
+### 4. Add offline-first cache invalidation strategy
 - **Why:** Property managers in Qatar often work in basements or areas with weak
   signal. The current mobile app shows stale data indefinitely once loaded.
   A time-based or event-based cache refresh (e.g., pull-to-refresh, on app
@@ -158,7 +152,7 @@ Prioritized by: user-facing value, security, end-to-end completeness, Qatar mark
 - **Effort:** M
 - **Owner:** @backend-eng (invalidation policy), @frontend-eng (UI hook)
 
-### 8. Publish first CHANGELOG entry (v1.0.0)
+### 5. Publish first CHANGELOG entry (v1.0.0)
 - **Why:** No changelog exists. Stakeholders and future agents have no visible
   record of what shipped. Per CLAUDE.md §8, this is required at definition of done.
 - **Effort:** S

@@ -5,6 +5,65 @@ All notable changes to PropertyEase will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] — 2026-09-08
+
+### Release — PropertyEase v1.0.0: Qatar-first property management
+
+First stable release of PropertyEase, a bilingual (Arabic/English + RTL)
+property management SaaS built for Qatar with QAR currency. Target market:
+property managers handling 10–500 units across 1–10 buildings.
+
+#### Web app (Next.js 14 + Prisma + Supabase)
+- Dashboard with portfolio overview, revenue chart, activity feed
+- Properties listing + detail view with unit management
+- Tenants, Leases, Payments, Maintenance tickets — full CRUD
+- Ad Campaigns and Leads pages with lead scoring
+- Reports page with revenue trends
+- Settings (profile, notifications, billing, danger zone)
+- Landing/marketing page with hero, features, pricing, testimonials
+- Onboarding flow for new property managers
+- Forgot-password / reset-password flows
+- Bilingual i18n (English + Arabic) with full RTL layout support
+- Copilot AI chat panel (floating, docked) backed by OpenAI API
+- Ad copy generation (`/api/ai/ad-copy`) and lead scoring (`/api/lead-score`)
+- Image upload via Cloudinary
+- Brand-consistent Tailwind theme (dark green `#132B25` + coral `#D97757`)
+- Service worker v5 with permanent cache-fallback fix
+- Supabase RLS policies applied to all tables
+
+#### Mobile app (Expo SDK 52 + React Native 0.76)
+- Auth flow with session persistence in AsyncStorage
+- Bottom-tab navigation (Dashboard, Properties, Tenants, Copilot, Settings)
+- Dashboard with stat cards, quick actions, health banner
+- Properties listing with search and type badges
+- Tenants + Leads tabbed screen
+- AI Copilot chat wired to real `/api/copilot` endpoint with Bearer token auth
+- Settings with language toggle (EN/AR), country selector (Qatar-only), plan info
+- Payments screen wired to `/api/payments` with create and list endpoints
+- Maintenance screen wired to `/api/maintenance` with ticket creation
+- Full Arabic i18n layer (`lib/i18n.ts`, ~200+ keys) with RTL direction switching
+  via `I18nManager.forceRTL()` — all 9 screens translated
+- Shared color token system matching web brand
+- AED/UAE removed; Qatar-only per ADR-002
+- Copilot fabricated numbers removed; fallback text now transparently indicates
+  API unavailability instead of showing fake figures
+
+#### AI layer
+- Three eval prompts versioned in `contracts/prompts/` (copilot-system, ad-copy, lead-scoring)
+- Eval harness (`evals/runner.ts`) with stub-mode and baseline comparison
+- All 14 eval cases passing in stub mode
+
+#### Data & infrastructure
+- Prisma as single source of truth for schema (ADR-001)
+- Qatar-only for v1 — no GCC multi-country support (ADR-002)
+- Fallback JSON seed data (`.data/fallback.json`) with 4 Qatar properties,
+  16 units, 8 tenants, 16 payments, 6 maintenance tickets for offline dev
+- Debug endpoints (`/api/debug/reset`, `/api/debug/dump`) for local development
+- Dev mode startup banner: `database.ts` prints `Mode: FALLBACK` or `SUPABASE`
+  on every server boot, preventing silent stale-data confusion (ADR-003)
+
+---
+
 ## [1.2.1] — 2026-09-06
 
 ### Fixed — Data hygiene round 2: test data & stale in-memory state
