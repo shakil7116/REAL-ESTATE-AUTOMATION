@@ -45,7 +45,8 @@ memory/
 ### Incidents
 - [2025-08-15: Cache fallback bug](incidents/2025-08-15-cache-fallback-bug.md) — service worker served marketing page from cache to dashboard route; v5 is the permanent fix
 - [2026-09-02: Mobile API integration](incidents/2026-09-02-mobile-api-integration.md) — Bearer token auth bridge, payments/maintenance pages, zero TS errors after SLATE_* scale + multiRemove fixes
-- [2026-09-07: Stale in-memory fallback state](incidents/2026-09-07-stale-fallback-state.md) — Manual edit of .data/fallback.json not picked up by live Next.js workers; requires full server restart to clear
+- [2026-09-07: Stale in-memory fallback state](incidents/2026-09-07-stale-fallback-state.md) — Manual edit of .data/fallback.json not picked up by live Next.js workers; requires full server restart to clear. **Partially superseded**: the real root cause was Supabase env vars (see 2026-09-08 incident).
+- [2026-09-08: Supabase env vars mask stale data](incidents/2026-09-08-supabase-masks-fallback.md) — NEXT_PUBLIC_SUPABASE_URL set in .env.local causes all API routes to bypass fallback.json entirely; stale test rows persisted in Supabase despite clean disk state
 
 ### Patterns
 - [Form Modal](patterns/form-modal.md) — standard pattern for create/edit forms in modals
