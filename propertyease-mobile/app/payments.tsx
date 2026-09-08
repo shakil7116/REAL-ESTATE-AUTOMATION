@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getToken } from '../lib/session';
+import { t } from '../lib/i18n';
 import {
   PRIMARY, CORAL, WORKSPACE_BG, SLATE_500, SLATE_700, SLATE_200, SLATE_400,
   EMERALD_500, AMBER_500, RED_500,
@@ -80,7 +81,7 @@ export default function PaymentsScreen() {
     const token = await getToken();
     if (!token) return;
     if (!formName.trim() || !formAmount.trim()) {
-      Alert.alert('Error', 'Please fill in tenant name and amount');
+      Alert.alert(t('common.error'), t('payments.alertFill'));
       return;
     }
     try {
@@ -100,11 +101,11 @@ export default function PaymentsScreen() {
         setPayments(prev => [json.data!, ...prev]);
         setShowCreate(false);
         setFormName(''); setFormAmount(''); setFormDate('');
-        Alert.alert('Success', 'Payment recorded');
+        Alert.alert(t('common.success'), t('payments.success'));
       } else {
-        Alert.alert('Error', json.error?.message || 'Failed to save');
+        Alert.alert(t('common.error'), json.error?.message || t('payments.errorGeneric'));
       }
-    } catch { Alert.alert('Error', 'Network error'); }
+    } catch { Alert.alert(t('common.error'), t('common.networkError')); }
   };
 
   const filterTabs: { key: FilterTab; label: string }[] = [
@@ -148,33 +149,33 @@ export default function PaymentsScreen() {
       {/* Month total banner */}
       <View style={styles.monthBanner}>
         <View>
-          <Text style={styles.monthLabel}>Collected This Month</Text>
+          <Text style={styles.monthLabel}>{t('payments.collectedThisMonth')}</Text>
           <Text style={styles.monthValue}>{fmtCurrency(monthTotal)}</Text>
         </View>
         <View style={styles.monthStats}>
           <View style={styles.monthStat}>
             <Text style={[styles.monthStatNum, { color: EMERALD_500 }]}>{thisMonth.length}</Text>
-            <Text style={styles.monthStatLbl}>Received</Text>
+            <Text style={styles.monthStatLbl}>{t('common.received')}</Text>
           </View>
           <View style={styles.monthDivider} />
           <View style={styles.monthStat}>
             <Text style={[styles.monthStatNum, { color: AMBER_500 }]}>
               {payments.filter(p => p.status === 'pending').length}
             </Text>
-            <Text style={styles.monthStatLbl}>Pending</Text>
+            <Text style={styles.monthStatLbl}>{t('common.pending')}</Text>
           </View>
         </View>
       </View>
 
       {/* Filter tabs */}
       <View style={styles.tabRow}>
-        {filterTabs.map(t => (
+          { filterTabs.map(tab => (
           <TouchableOpacity
-            key={t.key}
-            style={[styles.tab, filter === t.key && styles.tabActive]}
-            onPress={() => setFilter(t.key)}
+            key={tab.key}
+            style={[styles.tab, filter === tab.key && styles.tabActive]}
+            onPress={() => setFilter(tab.key)}
           >
-            <Text style={[styles.tabText, filter === t.key && styles.tabTextActive]}>{t.label}</Text>
+            <Text style={[styles.tabText, filter === tab.key && styles.tabTextActive]}>{t(`payments.tab${tab.key.charAt(0).toUpperCase() + tab.key.slice(1)}`)}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -183,13 +184,13 @@ export default function PaymentsScreen() {
         {filtered.length === 0 ? (
           <View style={styles.emptyCenter}>
             <Text style={styles.emptyIcon}>💳</Text>
-            <Text style={styles.emptyTitle}>No payments</Text>
-            <Text style={styles.emptySub}>Tap + to record a payment</Text>
+            <Text style={styles.emptyTitle}>{t('payments.noData')}</Text>
+            <Text style={styles.emptySub}>{t('payments.tapToAddPayment')}</Text>
           </View>
         ) : filtered.map((p) => (
           <TouchableOpacity key={p.id} style={styles.paymentCard} activeOpacity={0.8}>
             <View style={styles.paymentLeft}>
-              <Text style={styles.paymentTenant}>{p.tenant?.name || 'Unknown Tenant'}</Text>
+              <Text style={styles.paymentTenant}>{p.tenant?.name || '—'}</Text>
               <Text style={styles.paymentMeta}>
                 {p.payment_date ? new Date(p.payment_date).toLocaleDateString() : '—'}
                 {' · '}
@@ -214,34 +215,34 @@ export default function PaymentsScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Record Payment</Text>
+              <Text style={styles.modalTitle}>{t('payments.modalTitle')}</Text>
               <TouchableOpacity onPress={() => setShowCreate(false)}>
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Tenant Name</Text>
+              <Text style={styles.fieldLabel}>{t('payments.formTenantName')}</Text>
               <TextInput
                 value={formName}
                 onChangeText={setFormName}
-                placeholder="e.g. Ahmed Hassan"
+                placeholder={t('payments.placeholderTenant')}
                 placeholderTextColor={SLATE_500}
                 style={styles.input}
               />
             </View>
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Amount (QAR)</Text>
+              <Text style={styles.fieldLabel}>{t('payments.formAmount')}</Text>
               <TextInput
                 value={formAmount}
                 onChangeText={setFormAmount}
-                placeholder="e.g. 65000"
+                placeholder={t('payments.placeholderAmount')}
                 placeholderTextColor={SLATE_500}
                 keyboardType="numeric"
                 style={styles.input}
               />
             </View>
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Date</Text>
+              <Text style={styles.fieldLabel}>{t('payments.formDate')}</Text>
               <TextInput
                 value={formDate}
                 onChangeText={setFormDate}
@@ -251,7 +252,7 @@ export default function PaymentsScreen() {
               />
             </View>
             <TouchableOpacity style={styles.submitBtn} onPress={submitPayment}>
-              <Text style={styles.submitBtnText}>Save Payment</Text>
+              <Text style={styles.submitBtnText}>{t('payments.save')}</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getToken } from '../lib/session';
+import { t } from '../lib/i18n';
 import {
   PRIMARY, CORAL, WORKSPACE_BG, SLATE_500, SLATE_700, SLATE_200, SLATE_400, EMERALD_500,
 } from './colors';
@@ -148,7 +149,7 @@ export default function TenantsScreen() {
           onPress={() => setTab('tenants')}
         >
           <Text style={[styles.tabText, tab === 'tenants' && styles.tabTextActive]}>
-            Tenants ({tenants.length})
+            {t('tenants.title')} ({tenants.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -156,7 +157,7 @@ export default function TenantsScreen() {
           onPress={() => setTab('leads')}
         >
           <Text style={[styles.tabText, tab === 'leads' && styles.tabTextActive]}>
-            Leads ({leads.length})
+            {t('tenants.leads')} ({leads.length})
           </Text>
         </TouchableOpacity>
       </View>

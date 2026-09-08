@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { getUser, clearSession, getLanguage, saveLanguage, getCountry, saveCountry } from '../lib/session';
+import { t } from '../lib/i18n';
 import {
   PRIMARY, CORAL, WORKSPACE_BG, SLATE_500, SLATE_600, SLATE_700, SLATE_200, SLATE_300, SLATE_400, SLATE_100,
 } from './colors';
@@ -50,7 +51,7 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.root} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Settings</Text>
+        <Text style={styles.title}>{t('settings.title')}</Text>
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -68,7 +69,7 @@ export default function SettingsScreen() {
 
         {/* Language */}
         <View style={styles.sectionLabel}>
-          <Text style={styles.sectionLabelText}>Preferences</Text>
+          <Text style={styles.sectionLabelText}>{t('settings.preferences')}</Text>
         </View>
         <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}
           onPress={() => {
@@ -79,7 +80,7 @@ export default function SettingsScreen() {
         >
           <View style={styles.settingLeft}>
             <View style={styles.settingIcon}><Text style={styles.settingEmoji}>🌐</Text></View>
-            <Text style={styles.settingLabel}>Language</Text>
+            <Text style={styles.settingLabel}>{t('settings.language')}</Text>
           </View>
           <Text style={styles.settingValue}>{lang === 'en' ? 'English' : 'العربية'}</Text>
         </TouchableOpacity>
@@ -90,7 +91,7 @@ export default function SettingsScreen() {
         >
           <View style={styles.settingLeft}>
             <View style={styles.settingIcon}><Text style={styles.settingEmoji}>🌍</Text></View>
-            <Text style={styles.settingLabel}>Country</Text>
+            <Text style={styles.settingLabel}>{t('settings.country')}</Text>
           </View>
           <Text style={styles.settingValue}>{currentCountry.name} ({currentCountry.currency})</Text>
         </TouchableOpacity>
@@ -99,16 +100,16 @@ export default function SettingsScreen() {
         <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
           <View style={styles.settingLeft}>
             <View style={styles.settingIcon}><Text style={styles.settingEmoji}>🔔</Text></View>
-            <Text style={styles.settingLabel}>Notifications</Text>
+            <Text style={styles.settingLabel}>{t('settings.notifications')}</Text>
           </View>
-          <View style={styles.toggleOn}><Text style={styles.toggleOnText}>On</Text></View>
+          <View style={styles.toggleOn}><Text style={styles.toggleOnText}>{t('common.on')}</Text></View>
         </TouchableOpacity>
 
         {/* Security */}
         <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
           <View style={styles.settingLeft}>
             <View style={styles.settingIcon}><Text style={styles.settingEmoji}>🔒</Text></View>
-            <Text style={styles.settingLabel}>Security</Text>
+            <Text style={styles.settingLabel}>{t('settings.security')}</Text>
           </View>
           <Text style={styles.settingChevron}>›</Text>
         </TouchableOpacity>
@@ -144,17 +145,17 @@ export default function SettingsScreen() {
         {/* Plan info */}
         <View style={styles.planCard}>
           <View style={styles.planHeader}>
-            <View style={styles.planBadge}><Text style={styles.planBadgeText}>Growth Plan</Text></View>
-            <Text style={styles.planPrice}>QAR 299/mo</Text>
+            <View style={styles.planBadge}><Text style={styles.planBadgeText}>{t('settings.planGrowth')}</Text></View>
+            <Text style={styles.planPrice}>{t('settings.planPrice')}</Text>
           </View>
           <TouchableOpacity style={styles.upgradeBtn}>
-            <Text style={styles.upgradeBtnText}>Upgrade to Enterprise</Text>
+            <Text style={styles.upgradeBtnText}>{t('settings.upgradeEnterprise')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Logout */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Text style={styles.logoutText}>Sign Out</Text>
+          <Text style={styles.logoutText}>{t('settings.signOut')}</Text>
         </TouchableOpacity>
 
         <View style={{ height: 24 }} />

@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getToken } from '../lib/session';
+import { t } from '../lib/i18n';
 import {
   PRIMARY, CORAL, WORKSPACE_BG, SLATE_500, SLATE_600, SLATE_700, SLATE_200, SLATE_400,
   EMERALD_500, AMBER_500, RED_500, BLUE_500,
@@ -102,7 +103,7 @@ export default function MaintenanceScreen() {
     const token = await getToken();
     if (!token) return;
     if (!formTitle.trim()) {
-      Alert.alert('Error', 'Please enter a title');
+      Alert.alert(t('common.error'), t('maintenance.alertFillTitle'));
       return;
     }
     try {
@@ -124,9 +125,9 @@ export default function MaintenanceScreen() {
         setShowCreate(false);
         setFormTitle(''); setFormDesc(''); setFormPriority('medium');
       } else {
-        Alert.alert('Error', json.error?.message || 'Failed to save ticket');
+        Alert.alert(t('common.error'), json.error?.message || t('maintenance.errorGeneric'));
       }
-    } catch { Alert.alert('Error', 'Network error'); }
+    } catch { Alert.alert(t('common.error'), t('common.networkError')); }
   };
 
   if (loading) {
@@ -141,7 +142,7 @@ export default function MaintenanceScreen() {
     <SafeAreaView style={styles.root} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Maintenance</Text>
+        <Text style={styles.title}>{t('maintenance.title')}</Text>
         <TouchableOpacity style={styles.fab} onPress={() => setShowCreate(true)}>
           <Text style={styles.fabText}>+</Text>
         </TouchableOpacity>
@@ -150,24 +151,24 @@ export default function MaintenanceScreen() {
       {/* Urgent banner */}
       {urgentCount > 0 && (
         <View style={styles.urgentBanner}>
-          <Text style={styles.urgentText}>⚠ {urgentCount} urgent ticket{urgentCount > 1 ? 's' : ''} need attention</Text>
+          <Text style={styles.urgentText}>⚠ {urgentCount} {t('maintenance.urgentAttention', { count: urgentCount > 1 ? 's' : '' })}</Text>
         </View>
       )}
 
       {/* Filter tabs */}
       <View style={styles.tabRow}>
         {([
-          { key: 'all', label: 'All' },
-          { key: 'open', label: 'Open' },
-          { key: 'in_progress', label: 'In Progress' },
-          { key: 'completed', label: 'Done' },
-        ] as { key: FilterTab; label: string }[]).map(t => (
+          { key: 'all', label: t('maintenance.tabAll') },
+          { key: 'open', label: t('maintenance.tabOpen') },
+          { key: 'in_progress', label: t('maintenance.tabInProgress') },
+          { key: 'completed', label: t('maintenance.tabCompleted') },
+        ] as { key: FilterTab; label: string }[]).map(tab => (
           <TouchableOpacity
-            key={t.key}
-            style={[styles.tab, filter === t.key && styles.tabActive]}
-            onPress={() => setFilter(t.key)}
+            key={tab.key}
+            style={[styles.tab, filter === tab.key && styles.tabActive]}
+            onPress={() => setFilter(tab.key)}
           >
-            <Text style={[styles.tabText, filter === t.key && styles.tabTextActive]}>{t.label}</Text>
+            <Text style={[styles.tabText, filter === tab.key && styles.tabTextActive]}>{tab.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -176,8 +177,8 @@ export default function MaintenanceScreen() {
         {filtered.length === 0 ? (
           <View style={styles.emptyCenter}>
             <Text style={styles.emptyIcon}>🔧</Text>
-            <Text style={styles.emptyTitle}>No tickets</Text>
-            <Text style={styles.emptySub}>Tap + to create a maintenance request</Text>
+            <Text style={styles.emptyTitle}>{t('maintenance.noTickets')}</Text>
+            <Text style={styles.emptySub}>{t('maintenance.noTicketsSub')}</Text>
           </View>
         ) : filtered.map((t) => (
           <TouchableOpacity
@@ -211,27 +212,27 @@ export default function MaintenanceScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>New Ticket</Text>
+              <Text style={styles.modalTitle}>{t('maintenance.newTicket')}</Text>
               <TouchableOpacity onPress={() => setShowCreate(false)}>
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Title</Text>
+              <Text style={styles.fieldLabel}>{t('maintenance.formTitle')}</Text>
               <TextInput
                 value={formTitle}
                 onChangeText={setFormTitle}
-                placeholder="e.g. Elevator repair"
+                placeholder={t('maintenance.placeholderTicketTitle')}
                 placeholderTextColor={SLATE_500}
                 style={styles.input}
               />
             </View>
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Description</Text>
+              <Text style={styles.fieldLabel}>{t('maintenance.formDescription')}</Text>
               <TextInput
                 value={formDesc}
                 onChangeText={setFormDesc}
-                placeholder="Describe the issue…"
+                placeholder={t('maintenance.placeholderTicketDesc')}
                 placeholderTextColor={SLATE_500}
                 multiline
                 numberOfLines={3}
@@ -239,7 +240,7 @@ export default function MaintenanceScreen() {
               />
             </View>
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Priority</Text>
+              <Text style={styles.fieldLabel}>{t('maintenance.formPriority')}</Text>
               <View style={styles.priorityRow}>
                 {(['low', 'medium', 'high', 'urgent'] as const).map(p => (
                   <TouchableOpacity
@@ -253,7 +254,7 @@ export default function MaintenanceScreen() {
               </View>
             </View>
             <TouchableOpacity style={styles.submitBtn} onPress={submitTicket}>
-              <Text style={styles.submitBtnText}>Create Ticket</Text>
+              <Text style={styles.submitBtnText}>{t('maintenance.submitBtn')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -264,7 +265,7 @@ export default function MaintenanceScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Ticket Details</Text>
+              <Text style={styles.modalTitle}>{t('maintenance.ticketDetails')}</Text>
               <TouchableOpacity onPress={() => setDetailTicket(null)}>
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
@@ -283,16 +284,16 @@ export default function MaintenanceScreen() {
                     {new Date(detailTicket.created_at).toLocaleDateString()}
                   </Text>
                 </View>
-                <Text style={styles.detailSectionLabel}>Unit</Text>
+                <Text style={styles.detailSectionLabel}>{t('maintenance.unitLabel')}</Text>
                 <Text style={styles.detailValue}>{unitRef(detailTicket)}</Text>
                 {detailTicket.tenant?.name && (
                   <>
-                    <Text style={styles.detailSectionLabel}>Tenant</Text>
+                    <Text style={styles.detailSectionLabel}>{t('maintenance.tenantLabel')}</Text>
                     <Text style={styles.detailValue}>{detailTicket.tenant.name}</Text>
                   </>
                 )}
-                <Text style={styles.detailSectionLabel}>Description</Text>
-                <Text style={styles.detailDesc}>{detailTicket.description || 'No description provided.'}</Text>
+                <Text style={styles.detailSectionLabel}>{t('maintenance.descriptionLabel')}</Text>
+                <Text style={styles.detailDesc}>{detailTicket.description || t('maintenance.noDescription')}</Text>
               </>
             )}
           </View>

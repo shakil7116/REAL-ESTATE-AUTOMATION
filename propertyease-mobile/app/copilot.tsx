@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getToken } from '../lib/session';
+import { t } from '../lib/i18n';
 import {
   PRIMARY, CORAL, WORKSPACE_BG, SLATE_500, SLATE_700, SLATE_200, SLATE_300, SLATE_600, EMERALD_500,
 } from './colors';
@@ -38,16 +39,16 @@ const DEMO_RESPONSES: Record<string, string> = {
 };
 
 const QUICK_PROMPTS = [
-  { label: 'Collect Rent', prompt: 'Show rent collection status' },
-  { label: 'Maintenance', prompt: 'Check maintenance tickets' },
-  { label: 'Expiring Leases', prompt: 'Show leases expiring soon' },
-  { label: 'AI Insights', prompt: 'What should I focus on today?' },
+  { label: 'collectRent', prompt: 'Show rent collection status' },
+  { label: 'maintenance', prompt: 'Check maintenance tickets' },
+  { label: 'expiringLeases', prompt: 'Show leases expiring soon' },
+  { label: 'insights', prompt: 'What should I focus on today?' },
 ];
 
 export default function CopilotScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([{
     role: 'assistant',
-    text: "Hello! I'm your PropertyEase AI Copilot. I can help with leasing, maintenance, finance & marketing. What would you like to do today?",
+    text: t('copilot.welcome'),
     time: 'Just now',
   }]);
   const [input, setInput] = useState('');
@@ -111,10 +112,10 @@ export default function CopilotScreen() {
             <Text style={styles.copilotAvatarText}>AI</Text>
           </View>
           <View>
-            <Text style={styles.headerTitle}>PropertyEase Copilot</Text>
+            <Text style={styles.headerTitle}>{t('copilot.title')}</Text>
             <View style={styles.onlineRow}>
               <View style={styles.onlineDot} />
-              <Text style={styles.onlineText}>Online — Portfolio Live</Text>
+              <Text style={styles.onlineText}>{t('settings.online')}</Text>
             </View>
           </View>
         </View>
@@ -128,7 +129,7 @@ export default function CopilotScreen() {
       >
         {/* Portfolio pulse card */}
         <View style={styles.pulseCard}>
-          <Text style={styles.pulseTitle}>📊 Portfolio Pulse</Text>
+          <Text style={styles.pulseTitle}>{t('copilot.portfolioPulse')}</Text>
           <View style={styles.pulseStats}>
             {[
               { label: 'Revenue', value: '—' },

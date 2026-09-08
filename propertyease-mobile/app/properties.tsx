@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getToken } from '../lib/session';
+import { t } from '../lib/i18n';
 import {
   PRIMARY, CORAL, WORKSPACE_BG, SLATE_500, SLATE_700, SLATE_200, SLATE_300, EMERALD_500,
 } from './colors';
@@ -53,9 +54,9 @@ export default function PropertiesScreen() {
   const totalUnits = properties.reduce((sum, p) => sum + (p.total_units ?? 0), 0);
 
   const typeBadgeStyle = (type: string) => {
-    if (type === 'residential') return { bg: '#ECFDF5', text: '#059669', label: 'Residential' };
-    if (type === 'commercial')   return { bg: '#EFF6FF', text: '#2563EB', label: 'Commercial' };
-    return                          { bg: '#FEF3C7', text: '#D97706', label: 'Mixed-Use' };
+    if (type === 'residential') return { bg: '#ECFDF5', text: '#059669', label: t('properties.residential') };
+    if (type === 'commercial')   return { bg: '#EFF6FF', text: '#2563EB', label: t('properties.commercial') };
+    return                          { bg: '#FEF3C7', text: '#D97706', label: t('properties.mixedUse') };
   };
 
   if (loading) {
@@ -70,9 +71,9 @@ export default function PropertiesScreen() {
     <SafeAreaView style={styles.root} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.pageTitle}>Properties</Text>
+        <Text style={styles.pageTitle}>{t('properties.title')}</Text>
         <TouchableOpacity style={styles.addButton} onPress={() => {}}>
-          <Text style={styles.addButtonText}>+ Add</Text>
+          <Text style={styles.addButtonText}>+ {t('common.add')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -81,10 +82,10 @@ export default function PropertiesScreen() {
           /* Empty state */
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>🏢</Text>
-            <Text style={styles.emptyTitle}>No properties yet</Text>
-            <Text style={styles.emptySub}>Add your first property to get started</Text>
+            <Text style={styles.emptyTitle}>{t('properties.noResults')}</Text>
+            <Text style={styles.emptySub}>{t('properties.addFirst')}</Text>
             <TouchableOpacity style={styles.emptyBtn}>
-              <Text style={styles.emptyBtnText}>Add Property</Text>
+              <Text style={styles.emptyBtnText}>{t('properties.addFirst')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -92,9 +93,9 @@ export default function PropertiesScreen() {
             {/* Summary chips */}
             <View style={styles.summaryRow}>
               {[
-                { label: 'Total', value: String(properties.length), color: PRIMARY },
-                { label: 'Active', value: String(activeCount), color: EMERALD_500 },
-                { label: 'Units', value: String(totalUnits), color: CORAL },
+                { label: t('properties.total'), value: String(properties.length), color: PRIMARY },
+                { label: t('properties.active'), value: String(activeCount), color: EMERALD_500 },
+                { label: t('properties.units'), value: String(totalUnits), color: CORAL },
               ].map((chip, i) => (
                 <View key={i} style={[styles.chip, { borderLeftColor: chip.color, borderRightColor: chip.color }]}>
                   <Text style={[styles.chipValue, { color: chip.color }]}>{chip.value}</Text>

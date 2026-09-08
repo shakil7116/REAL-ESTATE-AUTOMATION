@@ -3,6 +3,7 @@
  *
  * Checks for a stored session on mount; if none exists, redirects to /login.
  * Otherwise renders the bottom-tab navigator.
+ * Initializes the i18n locale (and RTL direction) on first render.
  */
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
@@ -10,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { Tabs } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PRIMARY, CORAL } from './colors';
+import { initLocale } from '../lib/i18n';
 
 const SESSION_KEY = 'propertyease_user';
 
@@ -56,6 +58,8 @@ export default function Layout() {
         router.replace('/login');
         return;
       }
+      // Initialize locale & RTL direction before rendering tabs.
+      await initLocale();
       setReady(true);
     })();
   }, []);

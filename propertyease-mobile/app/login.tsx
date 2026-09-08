@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { PRIMARY, CORAL, WORKSPACE_BG, SLATE_500, SLATE_700, SLATE_200, SLATE_400 } from './colors';
 import { saveSession } from '../lib/session';
+import { t } from '../lib/i18n';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -28,7 +29,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please fill in email and password');
+      Alert.alert(t('common.error'), t('login.errorFill'));
       return;
     }
 
@@ -48,10 +49,10 @@ export default function LoginScreen() {
         await saveSession({ id, email: storedEmail, name: displayName }, token);
         router.replace('/dashboard');
       } else {
-        Alert.alert('Login Failed', json.error?.message || 'Invalid credentials');
+        Alert.alert(t('login.errorCreds'), json.error?.message || '');
       }
     } catch (err) {
-      Alert.alert('Connection Error', 'Could not reach the server. Make sure the web app is running.');
+      Alert.alert(t('login.errorConnectTitle'), t('login.errorConnect'));
     } finally {
       setLoading(false);
     }
@@ -65,21 +66,21 @@ export default function LoginScreen() {
           <View style={styles.logoBox}>
             <Text style={styles.logoLetter}>P</Text>
           </View>
-          <Text style={styles.brandName}>PropertyEase</Text>
+          <Text style={styles.brandName}>{t('login.title')}</Text>
           <Text style={styles.tagline}>Smart Property Management for Qatar</Text>
         </View>
 
         {/* Form */}
         <View style={styles.form}>
-          <Text style={styles.formTitle}>Welcome back</Text>
-          <Text style={styles.formSubtitle}>Sign in to manage your portfolio</Text>
+          <Text style={styles.formTitle}>{t('login.welcomeBack')}</Text>
+          <Text style={styles.formSubtitle}>{t('login.subtitle')}</Text>
 
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Full Name</Text>
+            <Text style={styles.fieldLabel}>{t('login.formName')}</Text>
             <TextInput
               value={name}
               onChangeText={setName}
-              placeholder="e.g. Mamun Mia"
+              placeholder={t('login.placeholderName')}
               placeholderTextColor={SLATE_500}
               autoCapitalize="words"
               style={styles.input}
@@ -87,11 +88,11 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Email</Text>
+            <Text style={styles.fieldLabel}>{t('login.email')}</Text>
             <TextInput
               value={email}
               onChangeText={setEmail}
-              placeholder="you@company.com"
+              placeholder={t('login.placeholderEmail')}
               placeholderTextColor={SLATE_500}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -101,12 +102,12 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Password</Text>
+            <Text style={styles.fieldLabel}>{t('login.password')}</Text>
             <View style={styles.passwordRow}>
               <TextInput
                 value={password}
                 onChangeText={setPassword}
-                placeholder="Min. 8 characters"
+                placeholder={t('login.placeholderPassword')}
                 placeholderTextColor={SLATE_500}
                 secureTextEntry={!showPassword}
                 style={[styles.input, { flex: 1 }]}
@@ -126,14 +127,12 @@ export default function LoginScreen() {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.loginBtnText}>Sign In</Text>
+              <Text style={styles.loginBtnText}>{t('login.signIn')}</Text>
             )}
           </TouchableOpacity>
 
           {/* Demo hint */}
-          <Text style={styles.hint}>
-            Demo mode: any email + password "demo" if NEXTAUTH_DEMO=true
-          </Text>
+          <Text style={styles.hint}>{t('login.hint')}</Text>
         </View>
       </View>
     </SafeAreaView>

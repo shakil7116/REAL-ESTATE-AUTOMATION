@@ -17,6 +17,7 @@ import {
   EMERALD_500, AMBER_500, SLATE_400,
 } from './colors';
 import { getUser, getToken } from '../lib/session';
+import { t } from '../lib/i18n';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -82,7 +83,7 @@ export default function DashboardScreen() {
   }, []);
 
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const greetingLabel = hour < 12 ? t('dashboard.greetingMorning') : hour < 17 ? t('dashboard.greetingAfternoon') : t('dashboard.greetingEvening');
 
   const fmtCurrency = (n: number) => {
     if (n >= 1_000_000) return `QAR ${(n / 1_000_000).toFixed(1)}M`;
@@ -95,7 +96,7 @@ export default function DashboardScreen() {
       <SafeAreaView style={styles.root} edges={['top']}>
         <View style={styles.skeletonContainer}>
           <ActivityIndicator size="large" color={PRIMARY} />
-          <Text style={styles.skeletonText}>Loading dashboard…</Text>
+          <Text style={styles.skeletonText}>{t('dashboard.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -109,8 +110,8 @@ export default function DashboardScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>{greeting}, {userName}</Text>
-          <Text style={styles.title}>Dashboard</Text>
+          <Text style={styles.greeting}>{greetingLabel}, {userName}</Text>
+          <Text style={styles.title}>{t('dashboard.title')}</Text>
         </View>
         <TouchableOpacity style={styles.avatar} onPress={() => router.push('/settings')}>
           <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
@@ -120,11 +121,11 @@ export default function DashboardScreen() {
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Stat Cards */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Portfolio Overview</Text>
+          <Text style={styles.sectionTitle}>{t('dashboard.portfolioOverview')}</Text>
           <View style={styles.statsGrid}>
             {[
               {
-                label: 'Total Revenue',
+                label: t('dashboard.totalRevenue'),
                 value: stats ? fmtCurrency(stats.totalRevenue) : '—',
                 change: `${stats?.totalProperties ?? 0} properties`,
                 up: true,
@@ -132,7 +133,7 @@ export default function DashboardScreen() {
                 icon: '💵',
               },
               {
-                label: 'Occupied Units',
+                label: t('dashboard.occupiedUnits'),
                 value: stats ? `${stats.occupiedUnits}/${stats.totalUnits}` : '—',
                 change: `${occRate}% rate`,
                 up: true,
@@ -140,7 +141,7 @@ export default function DashboardScreen() {
                 icon: '🏠',
               },
               {
-                label: 'Pending Payments',
+                label: t('dashboard.pendingPayments'),
                 value: String(stats?.pendingPayments ?? 0),
                 change: `${stats?.overduePayments ?? 0} overdue`,
                 up: false,
@@ -148,9 +149,9 @@ export default function DashboardScreen() {
                 icon: '📧',
               },
               {
-                label: 'Open Tickets',
+                label: t('dashboard.openTickets'),
                 value: String(stats?.openTickets ?? 0),
-                change: 'needs attention',
+                change: t('dashboard.needsAttention'),
                 up: false,
                 color: '#6366F1',
                 icon: '🔧',
@@ -170,13 +171,13 @@ export default function DashboardScreen() {
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text style={styles.sectionTitle}>{t('dashboard.quickActions')}</Text>
           <View style={styles.quickActionsGrid}>
             {[
-              { label: 'Properties', icon: '🏢', route: '/properties' as const },
-              { label: 'Record Payment', icon: '💰', route: '/payments' as const },
-              { label: 'Create Ticket', icon: '🔧', route: '/maintenance' as const },
-              { label: 'View Tenants', icon: '👥', route: '/tenants' as const },
+              { label: t('dashboard.actionProperties'), icon: '🏢', route: '/properties' as const },
+              { label: t('dashboard.actionPayment'), icon: '💰', route: '/payments' as const },
+              { label: t('dashboard.actionTicket'), icon: '🔧', route: '/maintenance' as const },
+              { label: t('dashboard.actionTenants'), icon: '👥', route: '/tenants' as const },
             ].map((action, i) => (
               <TouchableOpacity
                 key={i}
@@ -194,20 +195,20 @@ export default function DashboardScreen() {
         {/* Health Score Banner */}
         <View style={styles.healthBanner}>
           <View style={styles.healthLeft}>
-            <Text style={styles.healthTitle}>Portfolio Health Score</Text>
-            <Text style={styles.healthSub}>Based on occupancy & payments</Text>
+            <Text style={styles.healthTitle}>{t('dashboard.healthTitle')}</Text>
+            <Text style={styles.healthSub}>{t('dashboard.healthSub')}</Text>
           </View>
           <View style={styles.healthScore}>
             <Text style={styles.healthScoreValue}>{healthScore}</Text>
-            <Text style={styles.healthScoreLabel}>Score</Text>
+            <Text style={styles.healthScoreLabel}>{t('dashboard.healthScore')}</Text>
           </View>
         </View>
 
         {/* Recent Activity */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <Text style={styles.sectionTitle}>{t('dashboard.recentActivity')}</Text>
           {activities.length === 0 ? (
-            <Text style={styles.emptyText}>No recent activity</Text>
+            <Text style={styles.emptyText}>{t('dashboard.noActivity')}</Text>
           ) : (
             activities.slice(0, 5).map((item, i) => (
               <View key={item.id || i} style={styles.activityItem}>
