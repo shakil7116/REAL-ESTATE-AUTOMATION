@@ -110,7 +110,7 @@
 | 2 | Arabic RTL support | ✅ done | `lib/i18n.ts` + all screens translated |
 | 3 | Wire Copilot to real API | 🔄 partial | API call wired; demo responses kept for offline fallback |
 | 4 | Complete Payments + Maintenance pages | ✅ done | both screens fetch live data, create forms present |
-| 5 | Session token on all API calls | 🔄 partial | 7/9 screens pass token; two screens (copilot, settings) do not — tracked as v1.1 backlog |
+| 5 | Session token on all API calls | ✅ done | All 9 screens pass Bearer token; settings has no API calls |
 | — | Startup banner | ✅ done | `database.ts` prints `Mode: FALLBACK/SUPABASE` on every dev server start |
 
 ---
@@ -119,32 +119,12 @@
 
 Prioritized by: user-facing value, security, end-to-end completeness, Qatar market fit.
 
-### 1. Wire mobile Copilot to real OpenAI API (full)
-- **Why:** Current copilot uses a keyword-matching demo response map. It gives
-  fake numbers that look real. Users will trust wrong data and make bad decisions.
-  The web Copilot already calls the real endpoint; mobile must do the same.
-- **Effort:** M (replace `DEMO_RESPONSES` map with `fetch('/api/copilot', {...})`,
-  pass AsyncStorage token as Authorization header, handle streaming or
-  non-streaming response)
-- **Owner:** @backend-eng (auth header passthrough), @frontend-eng (mobile screen)
+### 1. Remove remaining Copilot demo fallback responses
+- **Why:** The `DEMO_RESPONSES` map still intercepts every offline/misclassified message with a generic "unavailable" reply instead of surfacing the real /api/copilot error. It should only fall back to a transparent connectivity message, not pre-written strings that look like answers.
+- **Effort:** S (replace DEMO_RESPONSES entries with a single connectivity-fallback string; keep the try/catch but surface the actual network error to the user)
+- **Owner:** @frontend-eng
 
-### 2. Add session token validation on all mobile API calls
-- **Why:** Currently some screens call the API without any auth header. Anyone
-  with the URL can read tenant data. This is a security gap that must close
-  before v1.1 ships to any real users.
-- **Effort:** S (centralize fetch wrapper in `lib/api.ts`, attach token from
-  AsyncStorage, return 401 redirect to login on auth failure)
-- **Owner:** @backend-eng
-
-### 3. Write manual QA checklist for mobile login + payment flow
-- **Why:** No automated tests exist for the mobile app yet. Before we release
-  v1.1 to anyone, we need a regression-safe process. The web has NextAuth
-  session tests; the mobile auth path has none.
-- **Effort:** S
-- **Owner:** @qa-tester
-- **Status:** ✅ done — `docs/TESTING.md` created 2026-09-08
-
-### 4. Add offline-first cache invalidation strategy
+### 2. Add offline-first cache invalidation strategy
 - **Why:** Property managers in Qatar often work in basements or areas with weak
   signal. The current mobile app shows stale data indefinitely once loaded.
   A time-based or event-based cache refresh (e.g., pull-to-refresh, on app
@@ -152,11 +132,12 @@ Prioritized by: user-facing value, security, end-to-end completeness, Qatar mark
 - **Effort:** M
 - **Owner:** @backend-eng (invalidation policy), @frontend-eng (UI hook)
 
-### 5. Publish first CHANGELOG entry (v1.0.0)
+### 3. Publish first CHANGELOG entry (v1.0.0)
 - **Why:** No changelog exists. Stakeholders and future agents have no visible
   record of what shipped. Per CLAUDE.md §8, this is required at definition of done.
 - **Effort:** S
 - **Owner:** @product-owner
+- **Status:** ✅ done — v1.0.0 entry added to docs/CHANGELOG.md 2026-09-08
 
 ---
 
@@ -175,10 +156,9 @@ Prioritized by: user-facing value, security, end-to-end completeness, Qatar mark
 
 ## Key Risk
 
-The mobile copilot currently shows fabricated numbers (e.g., "QAR 20.1M revenue",
-"18 open tickets"). If any real user acts on these, it damages trust irreparably.
-Item #3 (wire to real API) must land before item #4 (payments + maintenance) is
-considered complete.
+The mobile copilot still returns generic "unavailable" text on network errors
+instead of surfacing the real connection problem. This is tracked under SPRINT
+item #1 (remove DEMO_RESPONSES map).
 
 ---
 

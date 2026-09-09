@@ -26,23 +26,15 @@ interface ChatMessage {
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
-// DEMO_RESPONSES removed: they contained fabricated portfolio numbers (e.g. "QAR 228,360",
-// "18 open tickets") that do not match live data and risk misleading users into acting
-// on false figures. When the real /api/copilot endpoint is unreachable, we return a
-// transparent fallback instead of pretending to know the numbers.
-const DEMO_RESPONSES: Record<string, string> = {
-  collect: "The rent-collection data is unavailable right now. Please connect to the network and try again.",
-  maintenance: "Maintenance status is currently unavailable. Please check your connection and retry.",
-  lease: "Lease information is currently unavailable. Please check your connection and retry.",
-  insights: "Portfolio insights require a live connection to the PropertyEase API. Please try again later.",
-  default: "I'm here to help manage your portfolio. Ask me about rent collection, maintenance, leases, or get AI-powered insights.",
-};
+// DEMO_RESPONSES removed entirely (2026-09-09). The app now falls back to a
+// single transparent connectivity message — never pre-written text that looks
+// like a real Copilot reply. This prevents users from acting on fabricated data.
 
 const QUICK_PROMPTS = [
-  { label: 'collectRent', prompt: 'Show rent collection status' },
-  { label: 'maintenance', prompt: 'Check maintenance tickets' },
-  { label: 'expiringLeases', prompt: 'Show leases expiring soon' },
-  { label: 'insights', prompt: 'What should I focus on today?' },
+  { label: 'copilot.collectRent', prompt: 'Show rent collection status' },
+  { label: 'copilot.maintenance', prompt: 'Check maintenance tickets' },
+  { label: 'copilot.expiringLeases', prompt: 'Show leases expiring soon' },
+  { label: 'copilot.insights', prompt: 'What should I focus on today?' },
 ];
 
 export default function CopilotScreen() {
@@ -56,23 +48,12 @@ export default function CopilotScreen() {
   const inputRef = useRef<TextInput>(null);
   const scrollRef = useRef<ScrollView>(null);
 
-  const classify = (text: string): string => {
-    const lower = text.toLowerCase();
-    if (lower.includes('rent') || lower.includes('payment') || lower.includes('collect')) return 'collect';
-    if (lower.includes('maint') || lower.includes('repair') || lower.includes('ticket')) return 'maintenance';
-    if (lower.includes('lease') || lower.includes('expir')) return 'lease';
-    if (lower.includes('insight') || lower.includes('focus') || lower.includes('today')) return 'insights';
-    return 'default';
-  };
-
   const sendMessage = async (text: string) => {
     if (!text.trim() || isTyping) return;
     const userMsg: ChatMessage = { role: 'user', text, time: 'Just now' };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setIsTyping(true);
-
-    const responseKey = classify(text);
 
     try {
       const token = await getToken();
@@ -92,15 +73,23 @@ export default function CopilotScreen() {
         setIsTyping(false);
         return;
       }
+      // Server returned error — surface it directly
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        text: json.error?.message || t('copilot.insightsUnavailable'),
+        time: 'Just now',
+      }]);
     } catch {
-      // Network error — fall through to demo response below
+      // Network unreachable — show a single transparent fallback, never a fake reply
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          text: t('copilot.insightsUnavailable'),
+          time: 'Just now',
+        }]);
+        setIsTyping(false);
+      }, 400);
     }
-
-    // Fallback to demo responses
-    setTimeout(() => {
-      setMessages(prev => [...prev, { role: 'assistant', text: DEMO_RESPONSES[responseKey], time: 'Just now' }]);
-      setIsTyping(false);
-    }, 600);
   };
 
   return (
@@ -132,10 +121,10 @@ export default function CopilotScreen() {
           <Text style={styles.pulseTitle}>{t('copilot.portfolioPulse')}</Text>
           <View style={styles.pulseStats}>
             {[
-              { label: 'Revenue', value: '—' },
-              { label: 'Occupancy', value: '—' },
-              { label: 'Open Tickets', value: '—' },
-              { label: 'New Leads', value: '—' },
+              { label: 'copilot.revenue', value: '—' },
+              { label: 'copilot.occupancy', value: '—' },
+              { label: 'copilot.openTickets', value: '—' },
+              { label: 'copilot.newLeads', value: '—' },
             ].map((s, i) => (
               <View key={i} style={styles.pulseStat}>
                 <Text style={styles.pulseStatValue}>{s.value}</Text>
@@ -183,7 +172,7 @@ export default function CopilotScreen() {
             style={styles.quickPromptChip}
             onPress={() => sendMessage(qp.prompt)}
           >
-            <Text style={styles.quickPromptText}>{qp.label}</Text>
+            <Text style={styles.quickPromptText}>{t(qp.label)}</Text>
           </TouchableOpacity>
         ))}
       </View>
