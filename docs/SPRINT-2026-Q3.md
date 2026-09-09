@@ -108,7 +108,7 @@
 |---|---|---|---|
 | 1 | Fix mobile currency AED → QAR | ✅ done | settings.tsx COUNTRIES = QA only |
 | 2 | Arabic RTL support | ✅ done | `lib/i18n.ts` + all screens translated |
-| 3 | Wire Copilot to real API | 🔄 partial | API call wired; demo responses kept for offline fallback |
+| 3 | Wire Copilot to real API | ✅ done | Full API wired; DEMO_RESPONSES removed 2026-09-09 |
 | 4 | Complete Payments + Maintenance pages | ✅ done | both screens fetch live data, create forms present |
 | 5 | Session token on all API calls | ✅ done | All 9 screens pass Bearer token; settings has no API calls |
 | — | Startup banner | ✅ done | `database.ts` prints `Mode: FALLBACK/SUPABASE` on every dev server start |
@@ -119,12 +119,7 @@
 
 Prioritized by: user-facing value, security, end-to-end completeness, Qatar market fit.
 
-### 1. Remove remaining Copilot demo fallback responses
-- **Why:** The `DEMO_RESPONSES` map still intercepts every offline/misclassified message with a generic "unavailable" reply instead of surfacing the real /api/copilot error. It should only fall back to a transparent connectivity message, not pre-written strings that look like answers.
-- **Effort:** S (replace DEMO_RESPONSES entries with a single connectivity-fallback string; keep the try/catch but surface the actual network error to the user)
-- **Owner:** @frontend-eng
-
-### 2. Add offline-first cache invalidation strategy
+### 1. Add offline-first cache invalidation strategy
 - **Why:** Property managers in Qatar often work in basements or areas with weak
   signal. The current mobile app shows stale data indefinitely once loaded.
   A time-based or event-based cache refresh (e.g., pull-to-refresh, on app
@@ -132,7 +127,7 @@ Prioritized by: user-facing value, security, end-to-end completeness, Qatar mark
 - **Effort:** M
 - **Owner:** @backend-eng (invalidation policy), @frontend-eng (UI hook)
 
-### 3. Publish first CHANGELOG entry (v1.0.0)
+### 2. Publish first CHANGELOG entry (v1.0.0)
 - **Why:** No changelog exists. Stakeholders and future agents have no visible
   record of what shipped. Per CLAUDE.md §8, this is required at definition of done.
 - **Effort:** S
