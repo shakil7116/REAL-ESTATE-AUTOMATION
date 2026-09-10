@@ -49,7 +49,7 @@ memory/
 - [2025-08-15: Cache fallback bug](incidents/2025-08-15-cache-fallback-bug.md) — service worker served marketing page from cache to dashboard route; v5 is the permanent fix
 - [2026-09-02: Mobile API integration](incidents/2026-09-02-mobile-api-integration.md) — Bearer token auth bridge, payments/maintenance pages, zero TS errors after SLATE_* scale + multiRemove fixes
 - [2026-09-07: Stale in-memory fallback state](incidents/2026-09-07-stale-fallback-state.md) — Manual edit of .data/fallback.json not picked up by live Next.js workers; requires full server restart to clear. **Partially superseded**: the real root cause was Supabase env vars (see 2026-09-08 incident).
-- [2026-09-08: Supabase env vars mask stale data](incidents/2026-09-08-supabase-masks-fallback.md) — NEXT_PUBLIC_SUPABASE_URL set in .env.local causes all API routes to bypass fallback.json entirely; stale test rows persisted in Supabase despite clean disk state
+- [2026-09-09: Mobile i18n `t` shadowing bug](incidents/2026-09-09-mobile-i18n-shadow-bug.md) — `t` used as loop variable in tenants.tsx and maintenance.tsx causes runtime crashes in Arabic; duplicate i18n keys cause TS1117; all fixed
 
 ### Patterns
 - [Form Modal](patterns/form-modal.md) — standard pattern for create/edit forms in modals
@@ -57,6 +57,7 @@ memory/
 
 ### Cross-engine facts
 - [SW v5 cache fix](sw-v5-cache-fix.md) — service worker permanently fixed; never falls back to cached `/` for app routes
+- [Mobile cache invalidation layer](mobile-cache-invalidation.md) — Session-scoped in-memory cache (`lib/cache.ts`) with per-endpoint TTL (2–5 min); all 6 data screens use `getCached()` + `RefreshControl` + `useFocusEffect(refreshCache)`; `refreshCache()` is the single global invalidation point
 
 ## Rules for writing to memory
 

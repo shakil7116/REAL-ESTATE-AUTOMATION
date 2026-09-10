@@ -79,6 +79,10 @@ echo "🧪 pre-commit: running quick tests..."
 if [ -d "propertyease" ]; then
   cd propertyease
   if [ -f "package.json" ] && grep -q '"test"' package.json; then
+   # Run full vitest suite (vitest rejects Jest-only --testPathPattern flag)
+    npm test 2>&1 | tail -20 || {
+      echo "⚠️  Tests had issues. Investigate before pushing."
+    }
     # Only run tests matching "smoke" or with no failures expected
     npm test -- --testPathPattern=smoke 2>&1 | tail -20 || {
       echo "⚠️  Smoke tests had issues. Run full /test before pushing."

@@ -5,15 +5,19 @@
  * using the stored auth token. Merges into a tabbed view (Tenants | Leads).
  * Shows tenant name, unit reference, rent amount, status badge.
  * Shows lead name, source, budget, status.
+ *
+ * Cache invalidation: pull-to-refresh + foreground refetch via useFocusEffect.
  */
 import { useEffect, useState } from 'react';
 import {
   StyleSheet, Text, View, ScrollView, TouchableOpacity,
-  ActivityIndicator,
+  ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { getToken } from '../lib/session';
 import { t } from '../lib/i18n';
+import { getCached, refreshCache } from '../lib/cache';
 import {
   PRIMARY, CORAL, WORKSPACE_BG, SLATE_500, SLATE_700, SLATE_200, SLATE_400, EMERALD_500,
 } from './colors';
@@ -68,19 +72,21 @@ function enrichTenants(
   });
 }
 
+// eslint-disable-next-line no-shadow
 function sourceLabel(source: string): string {
   const map: Record<string, string> = {
-    direct: 'Direct',
-    phone_call: 'Phone',
-    whatsapp: 'WhatsApp',
-    meta_ads: 'Meta Ads',
-    google_ads: 'Google Ads',
-    bayut: 'Bayut',
-    property_finder: 'Property Finder',
-    referral: 'Referral',
-    other: 'Other',
+    direct: 'direct',
+    phone_call: 'phone',
+    whatsapp: 'whatsapp',
+    meta_ads: 'metaAds',
+    google_ads: 'googleAds',
+    bayut: 'bayut',
+    property_finder: 'propertyFinder',
+    referral: 'referral',
+    other: 'other',
   };
-  return map[source] || source;
+  const key = map[source];
+  return key ? t(`tenants.source${key.charAt(0).toUpperCase() + key.slice(1)}`) : source;
 }
 
 function statusColor(status?: string): string {
@@ -91,35 +97,38 @@ function statusColor(status?: string): string {
 }
 
 export default function TenantsScreen() {
+  const router = useRouter();
   const [tab, setTab] = useState<'tenants' | 'leads'>('tenants');
   const [tenants, setTenants] = useState<Array<Tenant & { unitRef?: string; rent?: number; status?: string }>>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [trigger, setTrigger] = useState(0);
+
+  // Clear cache on foreground — protects against stale data while navigating tabs.
+  useFocusEffect(() => refreshCache());
 
   useEffect(() => {
     (async () => {
       const token = await getToken();
       if (!token) { setLoading(false); return; }
       try {
-        const [tRes, lRes, uRes, lsRes] = await Promise.all([
-          fetch(`${API_BASE}/api/tenants`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API_BASE}/api/leads`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API_BASE}/api/units`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API_BASE}/api/leases`, { headers: { Authorization: `Bearer ${token}` } }),
+        const [tJson, lJson, uJson, lsJson] = await Promise.all([
+          getCached(`${API_BASE}/api/tenants`, { token }) as Promise<{ ok: boolean; data?: Tenant[] }>,
+          getCached(`${API_BASE}/api/leads`, { token }) as Promise<{ ok: boolean; data?: Lead[] }>,
+          getCached(`${API_BASE}/api/units`, { token }) as Promise<{ ok: boolean; data?: any[] }>,
+          getCached(`${API_BASE}/api/leases`, { token }) as Promise<{ ok: boolean; data?: any[] }>,
         ]);
-        const tJson = await tRes.json();
-        const lJson = await lRes.json();
-        const uJson = await uRes.json();
-        const lsJson = await lsRes.json();
         if (tJson.ok) {
           const enriched = enrichTenants(tJson.data || [], lsJson.data || [], uJson.data || []);
           setTenants(enriched);
         }
         if (lJson.ok && Array.isArray(lJson.data)) setLeads(lJson.data);
       } catch { /* fallback */ }
-      finally { setLoading(false); }
+      finally { setLoading(false); setRefreshing(false); }
     })();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trigger]);
 
   const getInitials = (name: string) =>
     name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
@@ -136,7 +145,7 @@ export default function TenantsScreen() {
     <SafeAreaView style={styles.root} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Tenants & Leads</Text>
+        <Text style={styles.title}>{t('tenants.title')}</Text>
         <TouchableOpacity style={styles.addBtn} onPress={() => {}}>
           <Text style={styles.addBtnText}>+ Add</Text>
         </TouchableOpacity>
@@ -162,30 +171,43 @@ export default function TenantsScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing || loading}
+            onRefresh={() => {
+              refreshCache();
+              setRefreshing(true);
+              setTrigger(t => t + 1);
+            }}
+          />
+        }
+      >
         {tab === 'tenants' ? (
           tenants.length === 0 ? (
             <View style={styles.emptyCenter}>
               <Text style={styles.emptyIcon}>👥</Text>
-              <Text style={styles.emptyTitle}>No tenants yet</Text>
-              <Text style={styles.emptySub}>Leasing a unit will create a tenant record</Text>
+            <Text style={styles.emptyTitle}>{t('tenants.noTenants')}</Text>
+              <Text style={styles.emptySub}>{t('tenants.noTenantsSub')}</Text>
             </View>
-          ) : tenants.map((t, i) => (
-            <TouchableOpacity key={t.id || i} style={styles.tenantCard} activeOpacity={0.8}>
+          ) : tenants.map((tenant, i) => (
+            <TouchableOpacity key={tenant.id || i} style={styles.tenantCard} activeOpacity={0.8}>
               <View style={styles.tenantAvatar}>
-                <Text style={styles.tenantAvatarText}>{getInitials(t.name)}</Text>
+                <Text style={styles.tenantAvatarText}>{getInitials(tenant.name)}</Text>
               </View>
               <View style={styles.tenantInfo}>
-                <Text style={styles.tenantName}>{t.name}</Text>
+                <Text style={styles.tenantName}>{tenant.name}</Text>
                 <Text style={styles.tenantUnit}>
-                  {t.unitRef ? `Unit ${t.unitRef}` : 'No unit assigned'}
-                  {t.rent ? ` · QAR ${t.rent.toLocaleString()}/yr` : ''}
+                  {tenant.unitRef ? `${t('tenants.unitLabel')} ${tenant.unitRef}` : t('tenants.noUnit')}
+                  {tenant.rent ? ` · QAR ${tenant.rent.toLocaleString()}${t('tenants.perYear')}` : ''}
                 </Text>
               </View>
               <View style={styles.tenantRight}>
-                <View style={[styles.statusBadge, { backgroundColor: statusColor(t.status) + '15' }]}>
-                  <Text style={[styles.statusText, { color: statusColor(t.status) }]}>
-                    {t.status || 'active'}
+                <View style={[styles.statusBadge, { backgroundColor: statusColor(tenant.status) + '15' }]}>
+                  <Text style={[styles.statusText, { color: statusColor(tenant.status) }]}>
+                    {tenant.status ? t(`tenants.status${tenant.status.charAt(0).toUpperCase() + tenant.status.slice(1)}`) : t('tenants.active')}
                   </Text>
                 </View>
               </View>
@@ -195,24 +217,24 @@ export default function TenantsScreen() {
           leads.length === 0 ? (
             <View style={styles.emptyCenter}>
               <Text style={styles.emptyIcon}>🎯</Text>
-              <Text style={styles.emptyTitle}>No leads yet</Text>
-              <Text style={styles.emptySub}>Leads appear when prospects inquire about units</Text>
+              <Text style={styles.emptyTitle}>{t('tenants.noLeads')}</Text>
+              <Text style={styles.emptySub}>{t('tenants.noLeadsSub')}</Text>
             </View>
-          ) : leads.map((l, i) => (
-            <View key={l.id || i} style={styles.leadCard}>
+          ) : leads.map((lead, i) => (
+            <View key={lead.id || i} style={styles.leadCard}>
               <View style={styles.leadAvatar}>
-                <Text style={styles.leadAvatarText}>{getInitials(l.name)}</Text>
+                <Text style={styles.leadAvatarText}>{getInitials(lead.name)}</Text>
               </View>
               <View style={styles.leadInfo}>
-                <Text style={styles.leadName}>{l.name}</Text>
+                <Text style={styles.leadName}>{lead.name}</Text>
                 <Text style={styles.leadSource}>
-                  {sourceLabel(l.source)}
-                  {l.property_interest ? ` · ${l.property_interest}` : ''}
-                  {l.budget ? ` · QAR ${l.budget.toLocaleString()}` : ''}
+                  {sourceLabel(lead.source)}
+                  {lead.property_interest ? ` · ${lead.property_interest}` : ''}
+                  {lead.budget ? ` · QAR ${lead.budget.toLocaleString()}` : ''}
                 </Text>
               </View>
               <View style={[styles.leadStatus, { backgroundColor: '#EFF6FF' }]}>
-                <Text style={styles.leadStatusText}>{l.status}</Text>
+                <Text style={styles.leadStatusText}>{t(`tenants.leadStatus${lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}`)}</Text>
               </View>
             </View>
           ))

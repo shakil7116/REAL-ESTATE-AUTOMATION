@@ -5,15 +5,19 @@
  * Groups by status (open / in-progress / completed).
  * Each card shows title, unit reference, priority badge, status badge, date opened.
  * Tap a ticket to see details. FAB to create a new ticket.
+ *
+ * Cache invalidation: pull-to-refresh + foreground refetch via useFocusEffect.
  */
 import { useEffect, useState } from 'react';
 import {
   StyleSheet, Text, View, ScrollView, TouchableOpacity,
-  ActivityIndicator, Modal, TextInput, Alert,
+  ActivityIndicator, Modal, TextInput, Alert, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { getToken } from '../lib/session';
 import { t } from '../lib/i18n';
+import { getCached, refreshCache } from '../lib/cache';
 import {
   PRIMARY, CORAL, WORKSPACE_BG, SLATE_500, SLATE_600, SLATE_700, SLATE_200, SLATE_400,
   EMERALD_500, AMBER_500, RED_500, BLUE_500,
@@ -38,6 +42,7 @@ interface Ticket {
 type FilterTab = 'all' | 'open' | 'in_progress' | 'completed';
 
 export default function MaintenanceScreen() {
+  const router = useRouter();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterTab>('all');
@@ -46,25 +51,28 @@ export default function MaintenanceScreen() {
   const [formTitle, setFormTitle] = useState('');
   const [formPriority, setFormPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
   const [formDesc, setFormDesc] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [trigger, setTrigger] = useState(0);
+
+  // Clear cache on foreground — protects against stale data while navigating tabs.
+  useFocusEffect(() => refreshCache());
 
   useEffect(() => {
     (async () => {
       const token = await getToken();
       if (!token) return;
       try {
-        const res = await fetch(`${API_BASE}/api/maintenance`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
+        const json = await getCached(`${API_BASE}/api/maintenance`, { token }) as { ok: boolean; data?: Ticket[] };
         if (json.ok && Array.isArray(json.data)) setTickets(json.data);
       } catch { /* fallback */ }
-      finally { setLoading(false); }
+      finally { setLoading(false); setRefreshing(false); }
     })();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trigger]);
 
   const filtered = filter === 'all'
     ? tickets
-    : tickets.filter(t => t.status === filter);
+    : tickets.filter(ticket => ticket.status === filter);
 
   const priorityColor = (p: string) => {
     if (p === 'urgent') return RED_500;
@@ -91,13 +99,13 @@ export default function MaintenanceScreen() {
     return '#FFF1F2';
   };
 
-  const unitRef = (t: Ticket) => {
-    if (t.unit?.property?.name && t.unit.unit_number)
-      return `${t.unit.property.name} · Unit ${t.unit.unit_number}`;
-    return `#${t.unit_id.slice(-4)}`;
+  const unitRef = (ticket: Ticket) => {
+    if (ticket.unit?.property?.name && ticket.unit.unit_number)
+      return `${ticket.unit.property.name} · ${t('maintenance.unitLabel')} ${ticket.unit.unit_number}`;
+    return `#${ticket.unit_id.slice(-4)}`;
   };
 
-  const urgentCount = tickets.filter(t => t.priority === 'urgent' && t.status !== 'completed').length;
+  const urgentCount = tickets.filter(ticket => ticket.priority === 'urgent' && ticket.status !== 'completed').length;
 
   const submitTicket = async () => {
     const token = await getToken();
@@ -173,34 +181,47 @@ export default function MaintenanceScreen() {
         ))}
       </View>
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing || loading}
+            onRefresh={() => {
+              refreshCache();
+              setRefreshing(true);
+              setTrigger(t => t + 1);
+            }}
+          />
+        }
+      >
         {filtered.length === 0 ? (
           <View style={styles.emptyCenter}>
             <Text style={styles.emptyIcon}>🔧</Text>
             <Text style={styles.emptyTitle}>{t('maintenance.noTickets')}</Text>
             <Text style={styles.emptySub}>{t('maintenance.noTicketsSub')}</Text>
           </View>
-        ) : filtered.map((t) => (
+        ) : filtered.map((ticket) => (
           <TouchableOpacity
-            key={t.id}
+            key={ticket.id}
             style={styles.ticketCard}
             activeOpacity={0.8}
-            onPress={() => setDetailTicket(t)}
+            onPress={() => setDetailTicket(ticket)}
           >
             <View style={styles.ticketTop}>
-              <Text style={styles.ticketTitle}>{t.title}</Text>
-              <View style={[styles.priorityBadge, { backgroundColor: priorityBg(t.priority) }]}>
-                <Text style={[styles.priorityText, { color: priorityColor(t.priority) }]}>{t.priority}</Text>
+              <Text style={styles.ticketTitle}>{ticket.title}</Text>
+              <View style={[styles.priorityBadge, { backgroundColor: priorityBg(ticket.priority) }]}>
+                <Text style={[styles.priorityText, { color: priorityColor(ticket.priority) }]}>{t(`maintenance.priority${ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)}`)}</Text>
               </View>
             </View>
             <View style={styles.ticketMeta}>
-              <Text style={styles.ticketUnit}>{unitRef(t)}</Text>
-              <View style={[styles.statusBadge, { backgroundColor: statusBg(t.status) }]}>
-                <Text style={[styles.statusText, { color: statusColor(t.status) }]}>{t.status.replace('_', ' ')}</Text>
+              <Text style={styles.ticketUnit}>{unitRef(ticket)}</Text>
+              <View style={[styles.statusBadge, { backgroundColor: statusBg(ticket.status) }]}>
+                <Text style={[styles.statusText, { color: statusColor(ticket.status) }]}>{t(`maintenance.status${ticket.status.replace(/_/g, '').replace(/^(.)/, c => c.toUpperCase())}`)}</Text>
               </View>
             </View>
             <Text style={styles.ticketDate}>
-              {new Date(t.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+              {new Date(ticket.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
             </Text>
           </TouchableOpacity>
         ))}
@@ -248,7 +269,7 @@ export default function MaintenanceScreen() {
                     style={[styles.priorityOption, formPriority === p && { borderColor: priorityColor(p), backgroundColor: priorityBg(p) }]}
                     onPress={() => setFormPriority(p)}
                   >
-                    <Text style={[styles.priorityOptionText, formPriority === p && { color: priorityColor(p) }]}>{p}</Text>
+                    <Text style={[styles.priorityOptionText, formPriority === p && { color: priorityColor(p) }]}>{t(`maintenance.priority${p.charAt(0).toUpperCase() + p.slice(1)}`)}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -275,10 +296,10 @@ export default function MaintenanceScreen() {
                 <Text style={styles.detailTitle}>{detailTicket.title}</Text>
                 <View style={styles.detailMeta}>
                   <View style={[styles.detailChip, { backgroundColor: priorityBg(detailTicket.priority) }]}>
-                    <Text style={[styles.detailChipText, { color: priorityColor(detailTicket.priority) }]}>{detailTicket.priority}</Text>
+                    <Text style={[styles.detailChipText, { color: priorityColor(detailTicket.priority) }]}>{t(`maintenance.priority${detailTicket.priority.charAt(0).toUpperCase() + detailTicket.priority.slice(1)}`)}</Text>
                   </View>
                   <View style={[styles.detailChip, { backgroundColor: statusBg(detailTicket.status) }]}>
-                    <Text style={[styles.detailChipText, { color: statusColor(detailTicket.status) }]}>{detailTicket.status.replace('_', ' ')}</Text>
+                    <Text style={[styles.detailChipText, { color: statusColor(detailTicket.status) }]}>{t(`maintenance.status${detailTicket.status.replace(/_/g, '').replace(/^(.)/, c => c.toUpperCase())}`)}</Text>
                   </View>
                   <Text style={styles.detailDate}>
                     {new Date(detailTicket.created_at).toLocaleDateString()}

@@ -64,6 +64,75 @@ property managers handling 10–500 units across 1–10 buildings.
 
 ---
 
+## [1.2.3] — 2026-09-09
+
+### Added — Mobile offline-first cache invalidation strategy
+
+Pull-to-refresh and foreground-aware cache refresh added across all 6 data screens
+(dashboard, properties, tenants, payments, maintenance, settings). Prevents stale
+data from being shown when property managers work in weak-signal environments (e.g.
+basement offices in Doha) or switch between tabs without noticing background
+updates on the web dashboard.
+
+- **`lib/cache.ts`** — New session-scoped in-memory cache layer with per-endpoint TTL:
+  - `getCached(url, init?)` — stores responses keyed by token prefix + URL path
+  - `refreshCache()` — single global invalidation called on pull-to-refresh and
+    foreground resumption via `useFocusEffect` from expo-router
+  - TTL policy: dashboard/activities 2 min · payments/maintenance 3 min ·
+    properties/tenants/leads 5 min · copilot/auth/uploads no cache
+- **6 screens updated**: each now imports `getCached` / `refreshCache`, wraps its
+  `ScrollView` in a `RefreshControl`, and calls `useFocusEffect(() => refreshCache())`
+  so data is always fresh when the tab regains foreground focus
+- Pattern uses an incrementing `trigger` state key to force re-fetch after cache
+  clear (avoids stale closures in async effect callbacks)
+
+### Notes
+- `mobile tsc --noEmit`: 0 errors
+- Web build verification pending (Qwen classifier rate-limited at time of commit)
+- All existing fetch-based API calls preserved — only the data screen loaders migrated
+
+---
+
+## [1.2.2] — 2026-09-09
+
+### Fixed — Mobile i18n hardening: remove all remaining hardcoded English strings
+
+A full audit of all 9 mobile screens found ~25 remaining hardcoded English display
+strings that would appear unchanged when the user switched to Arabic (RTL mode).
+Additionally, two silent runtime bugs were discovered:
+
+- **`tenants.tsx`** and **`maintenance.tsx`** both used `t` as the loop variable name
+  inside `.map()` and `.filter()` callbacks, shadowing the imported `t()` translation
+  function. In English this happened to work because no `t()` call was made on the
+  shadowed variable in those paths — but it is a latent crash bug that would surface
+  the moment any `t()` call appeared inside the same callback scope (e.g. after the
+  status-label fix). Renamed loop variables to `tenant`/`lead` and `ticket` respectively.
+- **`lib/i18n.ts`** had duplicate `maintenance.priority*` and `maintenance.submitBtn`
+  keys inserted by two consecutive edits, causing `TS1117: An object literal cannot
+  have multiple properties with the same name`. Removed the second blocks from both
+  EN and AR sections.
+
+All display strings across the 9 mobile screens now use `t()` keys:
+
+| Screen | Hardcoded strings removed |
+|---|---|
+| `tenants.tsx` | Header title, empty states, source labels, tenant unit/rent labels, lead status badges |
+| `payments.tsx` | Page title, filter tab labels, payment status badges |
+| `settings.tsx` | Profile role label, language value ("English"/"العربية"), country picker title |
+| `login.tsx` | Tagline "Smart Property Management for Qatar" |
+| `properties.tsx` | Unit count suffix, property status text |
+| `maintenance.tsx` | Ticket priority labels, status badges, unit reference in detail modal |
+
+Added 30+ new i18n keys to `lib/i18n.ts` covering tenant status, lead status,
+payment status, maintenance priority, and language display names (EN + AR).
+
+### Notes
+- `mobile tsc --noEmit`: 0 errors
+- Web build verification pending (Qwen classifier rate-limited at time of commit)
+- Incident documented: `memory/incidents/2026-09-09-mobile-i18n-shadow-bug.md`
+
+---
+
 ## [1.2.1] — 2026-09-06
 
 ### Fixed — Data hygiene round 2: test data & stale in-memory state

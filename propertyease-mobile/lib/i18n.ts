@@ -48,6 +48,7 @@ const translations: Record<Locale, Record<string, string>> = {
     'login.placeholderEmail': 'you@company.com',
     'login.placeholderPassword': 'Min. 8 characters',
     'login.hint': 'Demo mode: any email + password "demo" if NEXTAUTH_DEMO=true',
+    'login.tagline': 'Smart Property Management for Qatar',
 
     // ── Dashboard ───────────────────────────────────────────────────────────
     'dashboard.greetingMorning': 'Good morning',
@@ -91,9 +92,10 @@ const translations: Record<Locale, Record<string, string>> = {
     'properties.units': 'Units',
     'properties.noUnitsAssigned': 'No unit assigned',
     'properties.unitsLabel': 'units',
+    'properties.unitCount': 'units',
 
     // ── Tenants ─────────────────────────────────────────────────────────────
-    'tenants.title': 'Tenants',
+    'tenants.title': 'Tenants & Leads',
     'tenants.leads': 'Leads',
     'tenants.searchPlaceholder': 'Search tenants…',
     'tenants.noUnit': 'No unit assigned',
@@ -109,11 +111,23 @@ const translations: Record<Locale, Record<string, string>> = {
     'tenants.sourcePropertyFinder': 'Property Finder',
     'tenants.sourceReferral': 'Referral',
     'tenants.sourceOther': 'Other',
+    'tenants.unitLabel': 'Unit',
+    'tenants.perYear': '/yr',
     'tenants.noTenants': 'No tenants yet',
     'tenants.noTenantsSub': 'Leasing a unit will create a tenant record',
     'tenants.noLeads': 'No leads yet',
     'tenants.noLeadsSub': 'Leads appear when prospects inquire about units',
     'tenants.addButton': '+ Add',
+    'tenants.leadStatusNew': 'New',
+    'tenants.leadStatusContacted': 'Contacted',
+    'tenants.leadStatusInterested': 'Interested',
+    'tenants.leadStatusVisited': 'Visited',
+    'tenants.leadStatusNegotiating': 'Negotiating',
+    'tenants.leadStatusConverted': 'Converted',
+    'tenants.leadStatusLost': 'Lost',
+    'tenants.statusActive': 'Active',
+    'tenants.statusExpired': 'Expired',
+    'tenants.statusPendingRenewal': 'Pending Renewal',
 
     // ── Payments ────────────────────────────────────────────────────────────
     'payments.title': 'Payments',
@@ -141,6 +155,10 @@ const translations: Record<Locale, Record<string, string>> = {
     'payments.placeholderTenant': 'e.g. Ahmed Hassan',
     'payments.placeholderAmount': 'e.g. 65000',
     'payments.modalTitle': 'Record Payment',
+    'payments.statusReceived': 'Received',
+    'payments.statusOverdue': 'Overdue',
+    'payments.statusPending': 'Pending',
+    'payments.statusBounced': 'Bounced',
 
     // ── Maintenance ─────────────────────────────────────────────────────────
     'maintenance.title': 'Maintenance',
@@ -179,7 +197,6 @@ const translations: Record<Locale, Record<string, string>> = {
     'maintenance.ticketDetails': 'Ticket Details',
     'maintenance.placeholderTicketTitle': 'e.g. Elevator repair',
     'maintenance.placeholderTicketDesc': 'Describe the issue…',
-    'maintenance.submitBtn': 'Create Ticket',
     'maintenance.unitLabel': 'Unit',
     'maintenance.tenantLabel': 'Tenant',
     'maintenance.descriptionLabel': 'Description',
@@ -224,6 +241,8 @@ const translations: Record<Locale, Record<string, string>> = {
     'settings.profileRole': 'Property Manager',
     'settings.selectCountry': 'Select Country',
     'settings.on': 'On',
+    'settings.langEnglish': 'English',
+    'settings.langArabic': 'العربية',
 
     // ── Common / shared ─────────────────────────────────────────────────────
     'common.loading': 'Loading…',
@@ -277,6 +296,7 @@ const translations: Record<Locale, Record<string, string>> = {
     'login.placeholderEmail': 'أنت@شركتك.com',
     'login.placeholderPassword': '8 أحرف على الأقل',
     'login.hint': 'وضع التجربة: أي بريد + كلمة مرور "demo" إذا كان NEXTAUTH_DEMO=true',
+    'login.tagline': 'إدارة عقارية ذكية لدولة قطر',
 
     // ── Dashboard ───────────────────────────────────────────────────────────
     'dashboard.greetingMorning': 'صباح الخير',
@@ -322,7 +342,7 @@ const translations: Record<Locale, Record<string, string>> = {
     'properties.unitsLabel': 'وحدة',
 
     // ── Tenants ─────────────────────────────────────────────────────────────
-    'tenants.title': 'المستأجرون',
+    'tenants.title': 'المستأجرون والعملاء',
     'tenants.leads': 'العملاء المحتملون',
     'tenants.searchPlaceholder': 'بحث في المستأجرين…',
     'tenants.noUnit': 'بدون وحدة محددة',
@@ -338,11 +358,23 @@ const translations: Record<Locale, Record<string, string>> = {
     'tenants.sourcePropertyFinder': 'فرونتيارد',
     'tenants.sourceReferral': 'توصية',
     'tenants.sourceOther': 'أخرى',
+    'tenants.unitLabel': 'الوحدة',
+    'tenants.perYear': '/سنوي',
     'tenants.noTenants': 'لا يوجد مستأجرون بعد',
     'tenants.noTenantsSub': 'استئجار وحدة سينشئ سجل مستأجر',
     'tenants.noLeads': 'لا يوجد عملاء محتملون بعد',
     'tenants.noLeadsSub': 'تظهر العملاء عندما يستفسر المهتمون عن الوحدات',
     'tenants.addButton': '+ إضافة',
+    'tenants.leadStatusNew': 'جديد',
+    'tenants.leadStatusContacted': 'تم الاتصال',
+    'tenants.leadStatusInterested': 'مهتم',
+    'tenants.leadStatusVisited': 'زر',
+    'tenants.leadStatusNegotiating': 'قيد التفاوض',
+    'tenants.leadStatusConverted': 'مُحول',
+    'tenants.leadStatusLost': 'فقد',
+    'tenants.statusActive': 'نشط',
+    'tenants.statusExpired': 'منتهي',
+    'tenants.statusPendingRenewal': 'بانتظار التجديد',
 
     // ── Payments ────────────────────────────────────────────────────────────
     'payments.title': 'المدفوعات',
@@ -370,6 +402,10 @@ const translations: Record<Locale, Record<string, string>> = {
     'payments.placeholderTenant': 'مثال: أحمد حسن',
     'payments.placeholderAmount': 'مثال: ٦٥٠٠٠',
     'payments.modalTitle': 'تسجيل دفعة',
+    'payments.statusReceived': 'تم الاستلام',
+    'payments.statusOverdue': 'متأخرة',
+    'payments.statusPending': 'معلقة',
+    'payments.statusBounced': 'مرتجعة',
 
     // ── Maintenance ─────────────────────────────────────────────────────────
     'maintenance.title': 'الصيانة',
@@ -453,6 +489,8 @@ const translations: Record<Locale, Record<string, string>> = {
     'settings.profileRole': 'مدير عقارات',
     'settings.selectCountry': 'اختر الدولة',
     'settings.on': 'مفعّل',
+    'settings.langEnglish': 'الإنجليزية',
+    'settings.langArabic': 'العربية',
 
     // ── Common / shared ─────────────────────────────────────────────────────
     'common.loading': 'جار التحميل…',

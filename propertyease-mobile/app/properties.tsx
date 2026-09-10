@@ -4,15 +4,19 @@
  * Fetches real properties from GET /api/properties using the stored auth token.
  * Displays property cards with name, address, unit count, occupancy rate, and image.
  * Shows an empty state with CTA when no properties exist.
+ *
+ * Cache invalidation: pull-to-refresh + foreground refetch via useFocusEffect.
  */
 import { useEffect, useState } from 'react';
 import {
   StyleSheet, Text, View, ScrollView, TouchableOpacity,
-  ActivityIndicator, Image,
+  ActivityIndicator, Image, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { getToken } from '../lib/session';
 import { t } from '../lib/i18n';
+import { getCached, refreshCache } from '../lib/cache';
 import {
   PRIMARY, CORAL, WORKSPACE_BG, SLATE_500, SLATE_700, SLATE_200, SLATE_300, EMERALD_500,
 } from './colors';
@@ -32,23 +36,27 @@ interface Property {
 }
 
 export default function PropertiesScreen() {
+  const router = useRouter();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [trigger, setTrigger] = useState(0);
+
+  // Clear cache on foreground — protects against stale data while navigating tabs.
+  useFocusEffect(() => refreshCache());
 
   useEffect(() => {
     (async () => {
       const token = await getToken();
       if (!token) return;
       try {
-        const res = await fetch(`${API_BASE}/api/properties`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
+        const json = await getCached(`${API_BASE}/api/properties`, { token }) as { ok: boolean; data?: Property[] };
         if (json.ok && Array.isArray(json.data)) setProperties(json.data);
       } catch { /* fallback — show empty */ }
-      finally { setLoading(false); }
+      finally { setLoading(false); setRefreshing(false); }
     })();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trigger]);
 
   const activeCount = properties.filter(p => p.status === 'active').length;
   const totalUnits = properties.reduce((sum, p) => sum + (p.total_units ?? 0), 0);
@@ -77,7 +85,20 @@ export default function PropertiesScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing || loading}
+            onRefresh={() => {
+              refreshCache();
+              setRefreshing(true);
+              setTrigger(t => t + 1);
+            }}
+          />
+        }
+      >
         {properties.length === 0 ? (
           /* Empty state */
           <View style={styles.emptyState}>
@@ -133,9 +154,9 @@ export default function PropertiesScreen() {
                     <Text style={styles.propName}>{p.name}</Text>
                     <Text style={styles.propAddress}>{p.address}{p.city ? `, ${p.city}` : ''}</Text>
                     <View style={styles.propMeta}>
-                      <Text style={styles.propMetaText}>{p.total_units} units</Text>
+                      <Text style={styles.propMetaText}>{p.total_units} {t('properties.units')}</Text>
                       <Text style={styles.propMetaSep}>·</Text>
-                      <Text style={styles.propMetaText}>{p.status}</Text>
+                      <Text style={styles.propMetaText}>{p.status === 'active' ? t('properties.active') : p.status}</Text>
                     </View>
                   </View>
                 </TouchableOpacity>

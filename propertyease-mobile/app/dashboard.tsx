@@ -4,20 +4,26 @@
  * Fetches real stats from GET /api/dashboard using the stored auth token.
  * Shows a loading skeleton first, then portfolio overview cards, quick actions,
  * health score banner, and recent activity from GET /api/activities.
+ *
+ * Cache invalidation:
+ *   - Pull-to-refresh clears the in-memory cache and re-fetches all endpoints.
+ *   - useFocusEffect from expo-router also clears cache when the tab regains
+ *     foreground (protects against stale data while navigating between tabs).
  */
 import { useEffect, useState } from 'react';
 import {
   StyleSheet, Text, View, ScrollView, TouchableOpacity,
-  ActivityIndicator,
+  ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import {
   PRIMARY, CORAL, WORKSPACE_BG, SLATE_500, SLATE_700, SLATE_200,
   EMERALD_500, AMBER_500, SLATE_400,
 } from './colors';
 import { getUser, getToken } from '../lib/session';
 import { t } from '../lib/i18n';
+import { getCached, refreshCache } from '../lib/cache';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -50,6 +56,13 @@ export default function DashboardScreen() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  // Incrementing this key forces the effect to re-run after a cache clear.
+  const [trigger, setTrigger] = useState(0);
+
+  // Clear cache whenever this tab regains foreground (protects against stale data
+  // while navigating between tabs).
+  useFocusEffect(() => refreshCache());
 
   useEffect(() => {
     (async () => {
@@ -60,27 +73,22 @@ export default function DashboardScreen() {
       if (!token) { router.replace('/login'); return; }
 
       try {
-        const [statsRes, actRes] = await Promise.all([
-          fetch(`${API_BASE}/api/dashboard`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch(`${API_BASE}/api/activities?limit=5`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
+        const [statsJson, actJson] = await Promise.all([
+          getCached(`${API_BASE}/api/dashboard`, { token }) as Promise<{ ok: boolean; data?: DashboardStats }>,
+          getCached(`${API_BASE}/api/activities?limit=5`, { token }) as Promise<{ ok: boolean; data?: ActivityItem[] }>,
         ]);
 
-        const statsJson = await statsRes.json();
         if (statsJson.ok && statsJson.data) setStats(statsJson.data);
-
-        const actJson = await actRes.json();
         if (actJson.ok && Array.isArray(actJson.data)) setActivities(actJson.data);
       } catch {
         // Fall through — show what we have
       } finally {
         setLoading(false);
+        setRefreshing(false);
       }
     })();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trigger]);
 
   const hour = new Date().getHours();
   const greetingLabel = hour < 12 ? t('dashboard.greetingMorning') : hour < 17 ? t('dashboard.greetingAfternoon') : t('dashboard.greetingEvening');
@@ -118,7 +126,20 @@ export default function DashboardScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing || loading}
+            onRefresh={() => {
+              refreshCache();
+              setRefreshing(true);
+              setTrigger(t => t + 1); // re-triggers the fetch effect
+            }}
+          />
+        }
+      >
         {/* Stat Cards */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('dashboard.portfolioOverview')}</Text>

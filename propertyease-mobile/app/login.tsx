@@ -67,7 +67,7 @@ export default function LoginScreen() {
             <Text style={styles.logoLetter}>P</Text>
           </View>
           <Text style={styles.brandName}>{t('login.title')}</Text>
-          <Text style={styles.tagline}>Smart Property Management for Qatar</Text>
+          <Text style={styles.tagline}>{t('login.tagline')}</Text>
         </View>
 
         {/* Form */}

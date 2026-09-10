@@ -5,15 +5,19 @@
  * Groups by status (all / received / overdue / pending).
  * Each card shows tenant name, amount, date, status badge.
  * Shows total collected this month at top. Includes FAB to create payments.
+ *
+ * Cache invalidation: pull-to-refresh + foreground refetch via useFocusEffect.
  */
 import { useEffect, useState } from 'react';
 import {
   StyleSheet, Text, View, ScrollView, TouchableOpacity,
-  ActivityIndicator, Modal, TextInput, Alert,
+  ActivityIndicator, Modal, TextInput, Alert, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { getToken } from '../lib/session';
 import { t } from '../lib/i18n';
+import { getCached, refreshCache } from '../lib/cache';
 import {
   PRIMARY, CORAL, WORKSPACE_BG, SLATE_500, SLATE_700, SLATE_200, SLATE_400,
   EMERALD_500, AMBER_500, RED_500,
@@ -36,6 +40,7 @@ interface Payment {
 type FilterTab = 'all' | 'received' | 'overdue' | 'pending';
 
 export default function PaymentsScreen() {
+  const router = useRouter();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterTab>('all');
@@ -43,21 +48,24 @@ export default function PaymentsScreen() {
   const [formName, setFormName] = useState('');
   const [formAmount, setFormAmount] = useState('');
   const [formDate, setFormDate] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [trigger, setTrigger] = useState(0);
+
+  // Clear cache on foreground — protects against stale data while navigating tabs.
+  useFocusEffect(() => refreshCache());
 
   useEffect(() => {
     (async () => {
       const token = await getToken();
       if (!token) return;
       try {
-        const res = await fetch(`${API_BASE}/api/payments`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
+        const json = await getCached(`${API_BASE}/api/payments`, { token }) as { ok: boolean; data?: Payment[] };
         if (json.ok && Array.isArray(json.data)) setPayments(json.data);
       } catch { /* fallback */ }
-      finally { setLoading(false); }
+      finally { setLoading(false); setRefreshing(false); }
     })();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trigger]);
 
   const now = new Date();
   const thisMonth = payments.filter(p => {
@@ -109,10 +117,10 @@ export default function PaymentsScreen() {
   };
 
   const filterTabs: { key: FilterTab; label: string }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'received', label: 'Received' },
-    { key: 'overdue', label: 'Overdue' },
-    { key: 'pending', label: 'Pending' },
+    { key: 'all', label: t('payments.tabAll') },
+    { key: 'received', label: t('payments.tabReceived') },
+    { key: 'overdue', label: t('payments.tabOverdue') },
+    { key: 'pending', label: t('payments.tabPending') },
   ];
 
   const statusColor = (status: string) => {
@@ -140,7 +148,7 @@ export default function PaymentsScreen() {
     <SafeAreaView style={styles.root} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Payments</Text>
+        <Text style={styles.title}>{t('payments.title')}</Text>
         <TouchableOpacity style={styles.fab} onPress={() => setShowCreate(true)}>
           <Text style={styles.fabText}>+</Text>
         </TouchableOpacity>
@@ -180,7 +188,20 @@ export default function PaymentsScreen() {
         ))}
       </View>
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing || loading}
+            onRefresh={() => {
+              refreshCache();
+              setRefreshing(true);
+              setTrigger(t => t + 1);
+            }}
+          />
+        }
+      >
         {filtered.length === 0 ? (
           <View style={styles.emptyCenter}>
             <Text style={styles.emptyIcon}>💳</Text>
@@ -202,7 +223,7 @@ export default function PaymentsScreen() {
                 {p.status === 'received' ? '+' : ''}{fmtCurrency(p.amount)}
               </Text>
               <View style={[styles.statusBadge, { backgroundColor: statusBg(p.status) }]}>
-                <Text style={[styles.statusText, { color: statusColor(p.status) }]}>{p.status}</Text>
+                <Text style={[styles.statusText, { color: statusColor(p.status) }]}>{t(`payments.status${p.status.charAt(0).toUpperCase() + p.status.slice(1)}`)}</Text>
               </View>
             </View>
           </TouchableOpacity>

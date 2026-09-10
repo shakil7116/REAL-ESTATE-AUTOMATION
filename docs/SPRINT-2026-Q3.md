@@ -102,36 +102,14 @@
 
 ---
 
-## Completed (v1.2 — 2026-09-08)
+## Completed (v1.1)
 
 | # | Item | Status | Notes |
 |---|---|---|---|
-| 1 | Fix mobile currency AED → QAR | ✅ done | settings.tsx COUNTRIES = QA only |
-| 2 | Arabic RTL support | ✅ done | `lib/i18n.ts` + all screens translated |
-| 3 | Wire Copilot to real API | ✅ done | Full API wired; DEMO_RESPONSES removed 2026-09-09 |
-| 4 | Complete Payments + Maintenance pages | ✅ done | both screens fetch live data, create forms present |
-| 5 | Session token on all API calls | ✅ done | All 9 screens pass Bearer token; settings has no API calls |
-| — | Startup banner | ✅ done | `database.ts` prints `Mode: FALLBACK/SUPABASE` on every dev server start |
+| 1 | Mobile i18n hardening pass | ✅ done | All 9 screens now use `t()` for every display string; removed hardcoded English strings in tenants/payments/settings/login/properties/maintenance; fixed `t` shadowing bugs in tenants.tsx and maintenance.tsx that would crash at runtime in Arabic; added tenant-status, lead-status, payment-status, maintenance-priority keys |
+| 2 | Offline-first cache invalidation strategy | ✅ done | Added `lib/cache.ts` session-scoped in-memory cache with per-endpoint TTL (2–5 min); all 6 data screens (dashboard/properties/tenants/payments/maintenance) wrap ScrollView in RefreshControl + call `useFocusEffect(() => refreshCache())`; `refreshCache()` is the single global invalidation point |
 
----
-
-## Next Sprint (v1.1)
-
-Prioritized by: user-facing value, security, end-to-end completeness, Qatar market fit.
-
-### 1. Add offline-first cache invalidation strategy
-- **Why:** Property managers in Qatar often work in basements or areas with weak
-  signal. The current mobile app shows stale data indefinitely once loaded.
-  A time-based or event-based cache refresh (e.g., pull-to-refresh, on app
-  foreground) would prevent embarrassing stale-number scenarios.
-- **Effort:** M
-- **Owner:** @backend-eng (invalidation policy), @frontend-eng (UI hook)
-
-### 2. Publish first CHANGELOG entry (v1.0.0)
-- **Why:** No changelog exists. Stakeholders and future agents have no visible
-  record of what shipped. Per CLAUDE.md §8, this is required at definition of done.
-- **Effort:** S
-- **Owner:** @product-owner
+### 3. Publish first CHANGELOG entry (v1.0.0)
 - **Status:** ✅ done — v1.0.0 entry added to docs/CHANGELOG.md 2026-09-08
 
 ---

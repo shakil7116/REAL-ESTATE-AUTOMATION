@@ -63,7 +63,7 @@ export default function SettingsScreen() {
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{user?.name || 'User'}</Text>
             <Text style={styles.profileEmail}>{user?.email || ''}</Text>
-            <Text style={styles.profileRole}>Property Manager</Text>
+            <Text style={styles.profileRole}>{t('settings.profileRole')}</Text>
           </View>
         </View>
 
@@ -82,7 +82,7 @@ export default function SettingsScreen() {
             <View style={styles.settingIcon}><Text style={styles.settingEmoji}>🌐</Text></View>
             <Text style={styles.settingLabel}>{t('settings.language')}</Text>
           </View>
-          <Text style={styles.settingValue}>{lang === 'en' ? 'English' : 'العربية'}</Text>
+          <Text style={styles.settingValue}>{lang === 'en' ? t('settings.langEnglish') : t('settings.langArabic')}</Text>
         </TouchableOpacity>
 
         {/* Country */}
@@ -118,7 +118,7 @@ export default function SettingsScreen() {
         {showCountryPicker && (
           <View style={styles.countryPicker}>
             <View style={styles.countryPickerHeader}>
-              <Text style={styles.countryPickerTitle}>Select Country</Text>
+              <Text style={styles.countryPickerTitle}>{t('settings.selectCountry')}</Text>
               <TouchableOpacity onPress={() => setShowCountryPicker(false)}>
                 <Text style={styles.countryPickerClose}>✕</Text>
               </TouchableOpacity>
