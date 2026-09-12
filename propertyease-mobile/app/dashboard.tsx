@@ -1,14 +1,14 @@
 /**
  * DashboardScreen — PropertyEase mobile main dashboard.
  *
- * Fetches real stats from GET /api/dashboard using the stored auth token.
- * Shows a loading skeleton first, then portfolio overview cards, quick actions,
- * health score banner, and recent activity from GET /api/activities.
+ * Shows portfolio overview cards, quick actions, health score banner,
+ * and recent activity from GET /api/dashboard + /api/activities.
  *
- * Cache invalidation:
- *   - Pull-to-refresh clears the in-memory cache and re-fetches all endpoints.
- *   - useFocusEffect from expo-router also clears cache when the tab regains
- *     foreground (protects against stale data while navigating between tabs).
+ * Performance strategy:
+ *   - Renders immediately with placeholder values (no loading spinner).
+ *   - Data loads in the background via getCached() with a 2-min TTL.
+ *   - Pull-to-refresh clears cache and shows a small refresh indicator.
+ *   - useFocusEffect refreshes cache on tab foreground (data still renders fast).
  */
 import { useEffect, useState } from 'react';
 import {
@@ -55,22 +55,20 @@ export default function DashboardScreen() {
   const [userName, setUserName] = useState('User');
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Show spinner only during pull-to-refresh — never on initial load.
   const [refreshing, setRefreshing] = useState(false);
-  // Incrementing this key forces the effect to re-run after a cache clear.
   const [trigger, setTrigger] = useState(0);
 
-  // Clear cache whenever this tab regains foreground (protects against stale data
-  // while navigating between tabs).
+  // Clear cache whenever this tab regains foreground.
   useFocusEffect(() => refreshCache());
 
   useEffect(() => {
     (async () => {
-      const user = await getUser();
-      if (user) setUserName(user.name);
-
       const token = await getToken();
       if (!token) { router.replace('/login'); return; }
+
+      // Load user profile (non-blocking after initial render).
+      getUser().then(u => { if (u) setUserName(u.name); }).catch(() => {});
 
       try {
         const [statsJson, actJson] = await Promise.all([
@@ -81,10 +79,7 @@ export default function DashboardScreen() {
         if (statsJson.ok && statsJson.data) setStats(statsJson.data);
         if (actJson.ok && Array.isArray(actJson.data)) setActivities(actJson.data);
       } catch {
-        // Fall through — show what we have
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
+        // Show what we have — don't block UI.
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -98,17 +93,6 @@ export default function DashboardScreen() {
     if (n >= 1_000) return `QAR ${Math.round(n / 1_000)}K`;
     return `QAR ${n.toLocaleString()}`;
   };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.root} edges={['top']}>
-        <View style={styles.skeletonContainer}>
-          <ActivityIndicator size="large" color={PRIMARY} />
-          <Text style={styles.skeletonText}>{t('dashboard.loading')}</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   const occRate = stats?.occupancyRate ?? 0;
   const healthScore = Math.min(100, Math.round(occRate + (stats?.openTickets ?? 0) * 0.5));
@@ -131,11 +115,11 @@ export default function DashboardScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing || loading}
+            refreshing={refreshing}
             onRefresh={() => {
               refreshCache();
               setRefreshing(true);
-              setTrigger(t => t + 1); // re-triggers the fetch effect
+              setTrigger(prev => prev + 1);
             }}
           />
         }
@@ -257,8 +241,6 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: WORKSPACE_BG },
   scroll: { flex: 1 },
-  skeletonContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  skeletonText: { marginTop: 12, fontSize: 14, color: SLATE_500, fontWeight: '600' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

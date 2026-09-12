@@ -1,16 +1,15 @@
 /**
  * PropertiesScreen — PropertyEase mobile properties list.
  *
- * Fetches real properties from GET /api/properties using the stored auth token.
  * Displays property cards with name, address, unit count, occupancy rate, and image.
- * Shows an empty state with CTA when no properties exist.
+ * Renders immediately (empty list) and populates asynchronously — no loading spinner.
  *
- * Cache invalidation: pull-to-refresh + foreground refetch via useFocusEffect.
+ * Cache invalidation: pull-to-refresh clears in-memory cache; useFocusEffect runs on tab focus.
  */
 import { useEffect, useState } from 'react';
 import {
   StyleSheet, Text, View, ScrollView, TouchableOpacity,
-  ActivityIndicator, Image, RefreshControl,
+  Image, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -38,11 +37,10 @@ interface Property {
 export default function PropertiesScreen() {
   const router = useRouter();
   const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Show spinner only during pull-to-refresh — never on initial load.
   const [refreshing, setRefreshing] = useState(false);
   const [trigger, setTrigger] = useState(0);
 
-  // Clear cache on foreground — protects against stale data while navigating tabs.
   useFocusEffect(() => refreshCache());
 
   useEffect(() => {
@@ -52,8 +50,7 @@ export default function PropertiesScreen() {
       try {
         const json = await getCached(`${API_BASE}/api/properties`, { token }) as { ok: boolean; data?: Property[] };
         if (json.ok && Array.isArray(json.data)) setProperties(json.data);
-      } catch { /* fallback — show empty */ }
-      finally { setLoading(false); setRefreshing(false); }
+      } catch { /* show empty — don't block UI */ }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trigger]);
@@ -66,14 +63,6 @@ export default function PropertiesScreen() {
     if (type === 'commercial')   return { bg: '#EFF6FF', text: '#2563EB', label: t('properties.commercial') };
     return                          { bg: '#FEF3C7', text: '#D97706', label: t('properties.mixedUse') };
   };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.root} edges={['top']}>
-        <View style={styles.center}><ActivityIndicator size="large" color={PRIMARY} /></View>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -90,17 +79,16 @@ export default function PropertiesScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing || loading}
+            refreshing={refreshing}
             onRefresh={() => {
               refreshCache();
               setRefreshing(true);
-              setTrigger(t => t + 1);
+              setTrigger(prev => prev + 1);
             }}
           />
         }
       >
         {properties.length === 0 ? (
-          /* Empty state */
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>🏢</Text>
             <Text style={styles.emptyTitle}>{t('properties.noResults')}</Text>
@@ -130,18 +118,11 @@ export default function PropertiesScreen() {
               const badge = typeBadgeStyle(p.property_type);
               return (
                 <TouchableOpacity key={p.id} style={styles.propCard} activeOpacity={0.85}>
-                  {/* Property image */}
                   {p.images && p.images.length > 0 && p.images[0] ? (
-                    <Image
-                      source={{ uri: p.images[0] }}
-                      style={styles.propImage}
-                      resizeMode="cover"
-                    />
+                    <Image source={{ uri: p.images[0] }} style={styles.propImage} resizeMode="cover" />
                   ) : (
                     <View style={styles.propImagePlaceholder}>
-                      <Text style={styles.propImagePlaceholderText}>
-                        {p.name.charAt(0)}
-                      </Text>
+                      <Text style={styles.propImagePlaceholderText}>{p.name.charAt(0)}</Text>
                     </View>
                   )}
                   <View style={styles.propBody}>
@@ -173,7 +154,6 @@ export default function PropertiesScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: WORKSPACE_BG },
   scroll: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

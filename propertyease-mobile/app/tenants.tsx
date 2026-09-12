@@ -1,17 +1,15 @@
 /**
  * TenantsScreen — PropertyEase mobile tenants & leads list.
  *
- * Fetches tenants from GET /api/tenants and leads from GET /api/leads
- * using the stored auth token. Merges into a tabbed view (Tenants | Leads).
- * Shows tenant name, unit reference, rent amount, status badge.
- * Shows lead name, source, budget, status.
+ * Fetches tenants from GET /api/tenants and leads from GET /api/leads.
+ * Renders immediately (empty tabs) and populates asynchronously.
  *
- * Cache invalidation: pull-to-refresh + foreground refetch via useFocusEffect.
+ * Cache invalidation: pull-to-refresh clears cache; useFocusEffect runs on tab focus.
  */
 import { useEffect, useState } from 'react';
 import {
   StyleSheet, Text, View, ScrollView, TouchableOpacity,
-  ActivityIndicator, RefreshControl,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -72,7 +70,6 @@ function enrichTenants(
   });
 }
 
-// eslint-disable-next-line no-shadow
 function sourceLabel(source: string): string {
   const map: Record<string, string> = {
     direct: 'direct',
@@ -101,17 +98,16 @@ export default function TenantsScreen() {
   const [tab, setTab] = useState<'tenants' | 'leads'>('tenants');
   const [tenants, setTenants] = useState<Array<Tenant & { unitRef?: string; rent?: number; status?: string }>>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Show spinner only during pull-to-refresh — never on initial load.
   const [refreshing, setRefreshing] = useState(false);
   const [trigger, setTrigger] = useState(0);
 
-  // Clear cache on foreground — protects against stale data while navigating tabs.
   useFocusEffect(() => refreshCache());
 
   useEffect(() => {
     (async () => {
       const token = await getToken();
-      if (!token) { setLoading(false); return; }
+      if (!token) return;
       try {
         const [tJson, lJson, uJson, lsJson] = await Promise.all([
           getCached(`${API_BASE}/api/tenants`, { token }) as Promise<{ ok: boolean; data?: Tenant[] }>,
@@ -124,22 +120,13 @@ export default function TenantsScreen() {
           setTenants(enriched);
         }
         if (lJson.ok && Array.isArray(lJson.data)) setLeads(lJson.data);
-      } catch { /* fallback */ }
-      finally { setLoading(false); setRefreshing(false); }
+      } catch { /* show empty — don't block UI */ }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trigger]);
 
   const getInitials = (name: string) =>
     name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.root} edges={['top']}>
-        <View style={styles.center}><ActivityIndicator size="large" color={PRIMARY} /></View>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -176,11 +163,11 @@ export default function TenantsScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing || loading}
+            refreshing={refreshing}
             onRefresh={() => {
               refreshCache();
               setRefreshing(true);
-              setTrigger(t => t + 1);
+              setTrigger(prev => prev + 1);
             }}
           />
         }
@@ -189,7 +176,7 @@ export default function TenantsScreen() {
           tenants.length === 0 ? (
             <View style={styles.emptyCenter}>
               <Text style={styles.emptyIcon}>👥</Text>
-            <Text style={styles.emptyTitle}>{t('tenants.noTenants')}</Text>
+              <Text style={styles.emptyTitle}>{t('tenants.noTenants')}</Text>
               <Text style={styles.emptySub}>{t('tenants.noTenantsSub')}</Text>
             </View>
           ) : tenants.map((tenant, i) => (
@@ -248,7 +235,6 @@ export default function TenantsScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: WORKSPACE_BG },
   scroll: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

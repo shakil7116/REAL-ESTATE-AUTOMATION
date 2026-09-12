@@ -1,17 +1,15 @@
 /**
- * PaymentsScreen — PropertyEase mobile payment tracker.
+ * PaymentsScreen — PropertyEase mobile payments list.
  *
- * Fetches payments from GET /api/payments using the stored auth token.
- * Groups by status (all / received / overdue / pending).
- * Each card shows tenant name, amount, date, status badge.
- * Shows total collected this month at top. Includes FAB to create payments.
+ * Renders immediately (empty list) and populates via GET /api/payments.
+ * Shows payment cards with status badges (paid / pending / overdue).
  *
- * Cache invalidation: pull-to-refresh + foreground refetch via useFocusEffect.
+ * Cache TTL: 3 min. Pull-to-refresh clears cache; useFocusEffect refreshes on tab focus.
  */
 import { useEffect, useState } from 'react';
 import {
   StyleSheet, Text, View, ScrollView, TouchableOpacity,
-  ActivityIndicator, Modal, TextInput, Alert, RefreshControl,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -19,8 +17,7 @@ import { getToken } from '../lib/session';
 import { t } from '../lib/i18n';
 import { getCached, refreshCache } from '../lib/cache';
 import {
-  PRIMARY, CORAL, WORKSPACE_BG, SLATE_500, SLATE_700, SLATE_200, SLATE_400,
-  EMERALD_500, AMBER_500, RED_500,
+  PRIMARY, CORAL, WORKSPACE_BG, SLATE_500, SLATE_700, SLATE_200, SLATE_400, EMERALD_500, AMBER_500,
 } from './colors';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
@@ -28,30 +25,24 @@ const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 interface Payment {
   id: string;
   amount: number;
-  payment_date: string | null;
-  due_date: string;
-  status: 'pending' | 'received' | 'overdue' | 'bounced' | 'cancelled';
-  payment_type: string;
+  method?: string | null;
+  reference_no?: string | null;
   notes?: string | null;
-  tenant?: { name: string; id: string };
-  lease?: { monthly_rent: number };
+  paid_at: string;
+  created_at: string;
+  lease_id?: string | null;
+  tenant_name?: string;
+  unit_number?: string;
+  status: 'pending' | 'paid' | 'overdue' | 'partial';
 }
-
-type FilterTab = 'all' | 'received' | 'overdue' | 'pending';
 
 export default function PaymentsScreen() {
   const router = useRouter();
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<FilterTab>('all');
-  const [showCreate, setShowCreate] = useState(false);
-  const [formName, setFormName] = useState('');
-  const [formAmount, setFormAmount] = useState('');
-  const [formDate, setFormDate] = useState('');
+  // Show spinner only during pull-to-refresh — never on initial load.
   const [refreshing, setRefreshing] = useState(false);
   const [trigger, setTrigger] = useState(0);
 
-  // Clear cache on foreground — protects against stale data while navigating tabs.
   useFocusEffect(() => refreshCache());
 
   useEffect(() => {
@@ -61,131 +52,43 @@ export default function PaymentsScreen() {
       try {
         const json = await getCached(`${API_BASE}/api/payments`, { token }) as { ok: boolean; data?: Payment[] };
         if (json.ok && Array.isArray(json.data)) setPayments(json.data);
-      } catch { /* fallback */ }
-      finally { setLoading(false); setRefreshing(false); }
+      } catch { /* show empty — don't block UI */ }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trigger]);
 
-  const now = new Date();
-  const thisMonth = payments.filter(p => {
-    if (!p.payment_date || p.status !== 'received') return false;
-    const d = new Date(p.payment_date);
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  });
-  const monthTotal = thisMonth.reduce((sum, p) => sum + p.amount, 0);
-
-  const filtered = filter === 'all'
-    ? payments
-    : filter === 'received'
-      ? payments.filter(p => p.status === 'received')
-      : filter === 'overdue'
-        ? payments.filter(p => p.status === 'overdue')
-        : payments.filter(p => p.status === 'pending');
+  const totalCollected = payments
+    .filter(p => p.status === 'paid')
+    .reduce((s, p) => s + (p.amount ?? 0), 0);
+  const totalPending = payments
+    .filter(p => p.status === 'pending')
+    .reduce((s, p) => s + (p.amount ?? 0), 0);
+  const totalOverdue = payments
+    .filter(p => p.status === 'overdue')
+    .reduce((s, p) => s + (p.amount ?? 0), 0);
 
   const fmtCurrency = (n: number) => `QAR ${n.toLocaleString()}`;
 
-  const submitPayment = async () => {
-    const token = await getToken();
-    if (!token) return;
-    if (!formName.trim() || !formAmount.trim()) {
-      Alert.alert(t('common.error'), t('payments.alertFill'));
-      return;
-    }
-    try {
-      const res = await fetch(`${API_BASE}/api/payments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          tenant_id: 'demo',
-          amount: Number(formAmount),
-          payment_date: formDate || new Date().toISOString().slice(0, 10),
-          payment_type: 'rent',
-          status: 'pending',
-        }),
-      });
-      const json = await res.json();
-      if (json.ok) {
-        setPayments(prev => [json.data!, ...prev]);
-        setShowCreate(false);
-        setFormName(''); setFormAmount(''); setFormDate('');
-        Alert.alert(t('common.success'), t('payments.success'));
-      } else {
-        Alert.alert(t('common.error'), json.error?.message || t('payments.errorGeneric'));
-      }
-    } catch { Alert.alert(t('common.error'), t('common.networkError')); }
-  };
-
-  const filterTabs: { key: FilterTab; label: string }[] = [
-    { key: 'all', label: t('payments.tabAll') },
-    { key: 'received', label: t('payments.tabReceived') },
-    { key: 'overdue', label: t('payments.tabOverdue') },
-    { key: 'pending', label: t('payments.tabPending') },
-  ];
-
   const statusColor = (status: string) => {
-    if (status === 'received') return EMERALD_500;
-    if (status === 'overdue') return RED_500;
-    if (status === 'pending') return AMBER_500;
-    return SLATE_400;
-  };
-  const statusBg = (status: string) => {
-    if (status === 'received') return '#ECFDF5';
-    if (status === 'overdue') return '#FFF1F2';
-    if (status === 'pending') return '#FFFBEB';
-    return '#F8FAFC';
+    if (status === 'paid') return '#059669';
+    if (status === 'pending') return '#D97706';
+    if (status === 'overdue') return '#DC2626';
+    return '#6B7280';
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.root} edges={['top']}>
-        <View style={styles.center}><ActivityIndicator size="large" color={PRIMARY} /></View>
-      </SafeAreaView>
-    );
-  }
+  const statusLabel = (status: string) => {
+    if (status === 'paid') return t('payments.paid');
+    if (status === 'pending') return t('payments.pending');
+    if (status === 'overdue') return t('payments.overdue');
+    if (status === 'partial') return t('payments.partial');
+    return status;
+  };
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>{t('payments.title')}</Text>
-        <TouchableOpacity style={styles.fab} onPress={() => setShowCreate(true)}>
-          <Text style={styles.fabText}>+</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Month total banner */}
-      <View style={styles.monthBanner}>
-        <View>
-          <Text style={styles.monthLabel}>{t('payments.collectedThisMonth')}</Text>
-          <Text style={styles.monthValue}>{fmtCurrency(monthTotal)}</Text>
-        </View>
-        <View style={styles.monthStats}>
-          <View style={styles.monthStat}>
-            <Text style={[styles.monthStatNum, { color: EMERALD_500 }]}>{thisMonth.length}</Text>
-            <Text style={styles.monthStatLbl}>{t('common.received')}</Text>
-          </View>
-          <View style={styles.monthDivider} />
-          <View style={styles.monthStat}>
-            <Text style={[styles.monthStatNum, { color: AMBER_500 }]}>
-              {payments.filter(p => p.status === 'pending').length}
-            </Text>
-            <Text style={styles.monthStatLbl}>{t('common.pending')}</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Filter tabs */}
-      <View style={styles.tabRow}>
-          { filterTabs.map(tab => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[styles.tab, filter === tab.key && styles.tabActive]}
-            onPress={() => setFilter(tab.key)}
-          >
-            <Text style={[styles.tabText, filter === tab.key && styles.tabTextActive]}>{t(`payments.tab${tab.key.charAt(0).toUpperCase() + tab.key.slice(1)}`)}</Text>
-          </TouchableOpacity>
-        ))}
       </View>
 
       <ScrollView
@@ -193,91 +96,69 @@ export default function PaymentsScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing || loading}
+            refreshing={refreshing}
             onRefresh={() => {
               refreshCache();
               setRefreshing(true);
-              setTrigger(t => t + 1);
+              setTrigger(prev => prev + 1);
             }}
           />
         }
       >
-        {filtered.length === 0 ? (
+        {/* Summary Cards */}
+        <View style={styles.summaryRow}>
+          {[
+            { label: t('payments.collected'), value: totalCollected, color: EMERALD_500, bg: '#ECFDF5' },
+            { label: t('payments.pending'), value: totalPending, color: AMBER_500, bg: '#FEF3C7' },
+            { label: t('payments.overdue'), value: totalOverdue, color: '#DC2626', bg: '#FEF2F2' },
+          ].map((card, i) => (
+            <View key={i} style={[styles.summaryCard, { backgroundColor: card.bg }]}>
+              <Text style={[styles.summaryValue, { color: card.color }]}>{fmtCurrency(card.value)}</Text>
+              <Text style={styles.summaryLabel}>{card.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Payment List */}
+        {payments.length === 0 ? (
           <View style={styles.emptyCenter}>
             <Text style={styles.emptyIcon}>💳</Text>
-            <Text style={styles.emptyTitle}>{t('payments.noData')}</Text>
-            <Text style={styles.emptySub}>{t('payments.tapToAddPayment')}</Text>
+            <Text style={styles.emptyTitle}>{t('payments.noResults')}</Text>
+            <Text style={styles.emptySub}>{t('payments.noResultsSub')}</Text>
           </View>
-        ) : filtered.map((p) => (
-          <TouchableOpacity key={p.id} style={styles.paymentCard} activeOpacity={0.8}>
-            <View style={styles.paymentLeft}>
-              <Text style={styles.paymentTenant}>{p.tenant?.name || '—'}</Text>
-              <Text style={styles.paymentMeta}>
-                {p.payment_date ? new Date(p.payment_date).toLocaleDateString() : '—'}
-                {' · '}
-                {p.payment_type}
-              </Text>
-            </View>
-            <View style={styles.paymentRight}>
-              <Text style={[styles.paymentAmount, { color: p.status === 'received' ? EMERALD_500 : SLATE_700 }]}>
-                {p.status === 'received' ? '+' : ''}{fmtCurrency(p.amount)}
-              </Text>
-              <View style={[styles.statusBadge, { backgroundColor: statusBg(p.status) }]}>
-                <Text style={[styles.statusText, { color: statusColor(p.status) }]}>{t(`payments.status${p.status.charAt(0).toUpperCase() + p.status.slice(1)}`)}</Text>
+        ) : (
+          payments.slice(0, 20).map((pay) => (
+            <View key={pay.id} style={styles.paymentCard}>
+              <View style={styles.paymentLeft}>
+                <View style={[styles.paymentStatusDot, { backgroundColor: statusColor(pay.status) }]} />
+                <View>
+                  <Text style={styles.paymentAmount}>{fmtCurrency(pay.amount)}</Text>
+                  <Text style={styles.paymentMeta}>
+                    {pay.tenant_name || t('payments.unknownTenant')}
+                    {pay.unit_number ? ` · ${pay.unit_number}` : ''}
+                  </Text>
+                  <Text style={styles.paymentDate}>
+                    {new Date(pay.created_at).toLocaleDateString(undefined, {
+                      month: 'short', day: 'numeric', year: 'numeric',
+                    })}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.paymentRight}>
+                <View style={[styles.statusBadge, { backgroundColor: statusColor(pay.status) + '15' }]}>
+                  <Text style={[styles.statusText, { color: statusColor(pay.status) }]}>
+                    {statusLabel(pay.status)}
+                  </Text>
+                </View>
+                {pay.reference_no && (
+                  <Text style={styles.paymentRef}>{pay.reference_no}</Text>
+                )}
               </View>
             </View>
-          </TouchableOpacity>
-        ))}
+          ))
+        )}
         <View style={{ height: 24 }} />
       </ScrollView>
-
-      {/* Create payment modal */}
-      <Modal visible={showCreate} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('payments.modalTitle')}</Text>
-              <TouchableOpacity onPress={() => setShowCreate(false)}>
-                <Text style={styles.modalClose}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>{t('payments.formTenantName')}</Text>
-              <TextInput
-                value={formName}
-                onChangeText={setFormName}
-                placeholder={t('payments.placeholderTenant')}
-                placeholderTextColor={SLATE_500}
-                style={styles.input}
-              />
-            </View>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>{t('payments.formAmount')}</Text>
-              <TextInput
-                value={formAmount}
-                onChangeText={setFormAmount}
-                placeholder={t('payments.placeholderAmount')}
-                placeholderTextColor={SLATE_500}
-                keyboardType="numeric"
-                style={styles.input}
-              />
-            </View>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>{t('payments.formDate')}</Text>
-              <TextInput
-                value={formDate}
-                onChangeText={setFormDate}
-                placeholder={new Date().toISOString().slice(0, 10)}
-                placeholderTextColor={SLATE_500}
-                style={styles.input}
-              />
-            </View>
-            <TouchableOpacity style={styles.submitBtn} onPress={submitPayment}>
-              <Text style={styles.submitBtnText}>{t('payments.save')}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -285,62 +166,30 @@ export default function PaymentsScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: WORKSPACE_BG },
   scroll: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 16,
     backgroundColor: WORKSPACE_BG,
   },
   title: { fontSize: 24, fontWeight: '800', color: SLATE_700 },
-  fab: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: CORAL,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: CORAL, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
-  },
-  fabText: { color: '#fff', fontSize: 24, fontWeight: '300', lineHeight: 1 },
-  monthBanner: {
-    marginHorizontal: 20,
-    backgroundColor: PRIMARY,
-    borderRadius: 18,
-    padding: 18,
+  summaryRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 10,
     marginBottom: 16,
   },
-  monthLabel: { fontSize: 12, color: '#8EA499', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 },
-  monthValue: { fontSize: 28, fontWeight: '800', color: '#fff', marginTop: 2 },
-  monthStats: {
-    flexDirection: 'row',
-    marginTop: 14,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.15)',
+  summaryCard: {
+    flex: 1,
+    borderRadius: 14,
+    padding: 14,
+    alignItems: 'center',
   },
-  monthStat: { flex: 1, alignItems: 'center' },
-  monthStatNum: { fontSize: 18, fontWeight: '800' },
-  monthStatLbl: { fontSize: 11, color: '#8EA499', fontWeight: '600', marginTop: 2 },
-  monthDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.2)' },
-  tabRow: {
-    flexDirection: 'row',
-    marginHorizontal: 20,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 4,
-    borderWidth: 1,
-    borderColor: SLATE_200,
-    marginBottom: 16,
-  },
-  tab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 10 },
-  tabActive: { backgroundColor: PRIMARY },
-  tabText: { fontSize: 12, fontWeight: '600', color: SLATE_500 },
-  tabTextActive: { color: '#fff', fontWeight: '700' },
+  summaryValue: { fontSize: 15, fontWeight: '800' },
+  summaryLabel: { fontSize: 10, color: SLATE_500, fontWeight: '600', marginTop: 4 },
   paymentCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     marginHorizontal: 20,
     marginBottom: 8,
     backgroundColor: '#fff',
@@ -349,51 +198,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: SLATE_200,
   },
-  paymentLeft: { flex: 1 },
-  paymentTenant: { fontSize: 15, fontWeight: '700', color: SLATE_700 },
+  paymentLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  paymentStatusDot: { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
+  paymentAmount: { fontSize: 16, fontWeight: '800', color: SLATE_700 },
   paymentMeta: { fontSize: 12, color: SLATE_500, fontWeight: '500', marginTop: 2 },
+  paymentDate: { fontSize: 11, color: SLATE_400, fontWeight: '600', marginTop: 2 },
   paymentRight: { alignItems: 'flex-end' },
-  paymentAmount: { fontSize: 15, fontWeight: '800' },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, marginTop: 4 },
-  statusText: { fontSize: 10, fontWeight: '700', textTransform: 'capitalize' },
+  statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  statusText: { fontSize: 10, fontWeight: '700' },
+  paymentRef: { fontSize: 10, color: SLATE_400, marginTop: 4 },
   emptyCenter: { alignItems: 'center', marginTop: 60, paddingHorizontal: 32 },
   emptyIcon: { fontSize: 48, marginBottom: 12 },
   emptyTitle: { fontSize: 18, fontWeight: '800', color: SLATE_700, marginBottom: 6 },
   emptySub: { fontSize: 13, color: SLATE_400, textAlign: 'center' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalSheet: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 32,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: SLATE_700 },
-  modalClose: { fontSize: 18, color: SLATE_400, fontWeight: '600' },
-  field: { marginTop: 14 },
-  fieldLabel: { fontSize: 12, fontWeight: '700', color: SLATE_700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
-  input: {
-    backgroundColor: WORKSPACE_BG,
-    borderWidth: 1,
-    borderColor: SLATE_200,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
-    color: SLATE_700,
-  },
-  submitBtn: {
-    backgroundColor: CORAL,
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 24,
-  },
-  submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });

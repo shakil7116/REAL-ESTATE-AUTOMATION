@@ -45,6 +45,11 @@ export default function Layout() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
 
+  // Start locale init fire-and-forget (non-blocking) — RTL/fonts load in background
+  useEffect(() => {
+    initLocale().catch(() => {});
+  }, []);
+
   useEffect(() => {
     (async () => {
       try {
@@ -58,8 +63,6 @@ export default function Layout() {
         router.replace('/login');
         return;
       }
-      // Initialize locale & RTL direction before rendering tabs.
-      await initLocale();
       setReady(true);
     })();
   }, []);
