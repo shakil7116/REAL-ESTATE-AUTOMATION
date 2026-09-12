@@ -83,10 +83,6 @@ if [ -d "propertyease" ]; then
     npm test 2>&1 | tail -20 || {
       echo "⚠️  Tests had issues. Investigate before pushing."
     }
-    # Only run tests matching "smoke" or with no failures expected
-    npm test -- --testPathPattern=smoke 2>&1 | tail -20 || {
-      echo "⚠️  Smoke tests had issues. Run full /test before pushing."
-    }
   else
     echo "⏭️  No test script in package.json, skipping."
   fi
