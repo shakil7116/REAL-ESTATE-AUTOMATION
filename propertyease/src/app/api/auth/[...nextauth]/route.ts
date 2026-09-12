@@ -8,22 +8,50 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// The fallback users are stored in .data/fallback.json under "users" key.
-// Without Supabase env, we read them from the same storage layer as the rest of the app.
+/**
+ * Load users from .data/fallback.json on demand.
+ *
+ * This is needed because the auth route does NOT import database.ts,
+ * so globalThis.__PE_FALLBACK__ is never initialized before this function runs.
+ * Reading directly from the JSON file guarantees we always have the users
+ * available even when Supabase is configured but the users table is empty
+ * or missing required columns.
+ */
+function loadFallbackUsers(): any[] {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    // Check both possible cwd locations
+    const candidates = [
+      path.join(process.cwd(), '.data', 'fallback.json'),
+      path.join(process.cwd(), 'propertyease', '.data', 'fallback.json'),
+    ];
+    for (const fp of candidates) {
+      if (fs.existsSync(fp)) {
+        const raw = JSON.parse(fs.readFileSync(fp, 'utf8'));
+        if (raw?.users && Array.isArray(raw.users)) return raw.users;
+      }
+    }
+  } catch { /* ignore */ }
+  return [];
+}
+
 export async function getUserByEmail(email: string) {
+  // 1) Try Supabase; if it errors or returns nothing, drop through to JSON fallback
   if (supabaseUrl && supabaseAnonKey) {
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, email, password, name, name_ar, role, isActive')
-      .eq('email', email)
-      .single();
-    if (error || !data) return null;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, email, password, name, name_ar, role, is_active')
+        .eq('email', email)
+        .single();
+      if (!error && data) return data;
+    } catch { /* Supabase unavailable or schema mismatch — fall through */ }
   }
-  // Fallback: read from globalThis bundle
-  const b: any = globalThis.__PE_FALLBACK__;
-  if (!b?.users) return null;
-  return b.users.find((u: any) => u.email === email) ?? null;
+  // 2) Fallback: read users directly from .data/fallback.json
+  const users = loadFallbackUsers();
+  if (!users.length) return null;
+  return users.find((u: any) => u.email === email) ?? null;
 }
 
 async function createUserFromGoogle(profile: { id: string; email: string; name: string; email_verified?: boolean; picture?: string }) {
