@@ -33,7 +33,7 @@ service worker version query string without explicit user approval.
 
 | Var | Required | Description |
 |---|---|---|
-| `DATABASE_URL` | Yes | Postgres connection string. For Supabase: `postgresql://postgres:YOUR_PASSWORD_HERE@db.YOUR_PROJECT.supabase.co:5432/postgres` |
+| `DATABASE_URL` | Yes | Postgres connection string (e.g. from your Supabase dashboard) |
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes (web/mobile) | `https://PROJECT.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes (web/mobile) | Public anon key, safe in client |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-only | Bypasses RLS. NEVER expose to client. |
@@ -100,13 +100,7 @@ Use `npx prisma db push` against the Supabase URL, not the old `supabase-schema.
 
 For local dev without a real Supabase project, you can use:
 
-```bash
-DATABASE_URL="postgresql://placeholder_user:placeholder_pass@localhost:5432/propertyease"
-NEXT_PUBLIC_SUPABASE_URL="http://localhost:54321"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="local-anon-key"
-```
-
-Run Supabase locally: `npx supabase start`
+For local dev without a real Supabase project, run `npx supabase start` and use the generated URL from `.supabase/.temp/.env`.
 
 ## Rotation policy
 
