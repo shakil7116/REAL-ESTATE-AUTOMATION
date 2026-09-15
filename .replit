@@ -1,0 +1,18 @@
+[context]
+name = "PropertyEase AI OS"
+description = "Bilingual property management SaaS for Qatar — Next.js web + Expo mobile"
+
+[build]
+cmd = "cd propertyease && npm install && cd ../propertyease-mobile && npm install"
+start = "cd propertyease && npm run dev"
+
+[env]
+PORT = "3000"
+NEXTAUTH_URL = "${REPLIT_DOMAIN}"
+NEXTAUTH_SECRET = "${NEXTAUTH_SECRET}"
+NEXT_PUBLIC_API_URL = "${REPLIT_DOMAIN}/api"
+NEXT_PUBLIC_SUPABASE_URL = "${NEXT_PUBLIC_SUPABASE_URL}"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "${NEXT_PUBLIC_SUPABASE_ANON_KEY}"
+
+# Demo mode auth (no real Supabase required)
+NEXTAUTH_DEMO = "true"
