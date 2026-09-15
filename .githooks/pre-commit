@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# .githooks/pre-commit — wrapper that delegates to .claude/hooks/pre-commit.sh
+# Why two scripts: keeps the actual logic in .claude/hooks/ (so it's
+# portable and visible to the AI-OS) while .githooks/ provides the
+# symlink target that git actually invokes.
+
+set -e
+exec "$(dirname "$0")/../.claude/hooks/pre-commit.sh" "$@"

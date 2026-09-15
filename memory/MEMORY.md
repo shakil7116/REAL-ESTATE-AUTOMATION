@@ -75,5 +75,8 @@ This file is the source of truth for "what do I need to know before working on t
 
 ---
 
-**Last updated:** 2026-09-08
+**Last updated:** 2026-09-12
 **Maintained by:** @product-owner
+- [Mobile render-immediately pattern](patterns/mobile-render-immediately.md) — All 6 data screens use `trigger` + `refreshing` state only (no blocking `loading`); pull-to-refresh clears cache and increments trigger; pattern documented with copy-paste template
+- [Auth: Supabase Fallback Bug Fix](incidents/2026-09-12-auth-supabase-fallback-bug.md) — users table missing password column; fixed by reading fallback.json directly in auth route
+- [Write in English Only](write-in-english-only.md) — User explicit preference: all output in English, never Chinese or other languages

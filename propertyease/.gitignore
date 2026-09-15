@@ -1,0 +1,61 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Next.js
+.next/
+out/
+
+# Production
+build/
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env*.local
+.env
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Prisma — DO commit migrations; ignore only the dev artifacts
+# prisma/migrations/    ← intentionally NOT ignored, see ADR-001
+prisma/dev.db*
+prisma/.tmp/
+
+# PropertyEase persistent fallback (server-side, never commit)
+.data/
+fallback.json
+
+# User-uploaded images (served from /uploads/* at runtime, never committed)
+public/uploads/
+
+# Recovery scripts (created during past file-corruption incident, never commit)
+fix-revalidate.js
+fix_newlines.js
+recover_files.js
+check-exports.js
+
+# OS-level AI-OS config (per-developer, not committed)
+.sw.js*
+sw.js.bak
+public/sw.js.bak
+
+# AI-OS generated files (eval results, history)
+evals/results.json
+memory/evals-history.md

@@ -1,0 +1,18 @@
+{
+  "name": "PropertyEase",
+  "short_name": "PropertyEase",
+  "description": "AI-powered property management platform for Qatar",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#F6F8F6",
+  "theme_color": "#132B25",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

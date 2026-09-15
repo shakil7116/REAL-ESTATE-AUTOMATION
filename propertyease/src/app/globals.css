@@ -1,0 +1,264 @@
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fonts loaded via <link> in layout.tsx — single source, no @import to avoid double-load flash */
+
+:root {
+  --bg-workspace: #F6F8F6;
+  --bg-sidebar: #132B25;
+  --sidebar-active: #DDE9E2;
+  --sidebar-text: #8EA499;
+  --sidebar-active-text: #0D2A24;
+  --brand-coral: #D97757;
+  --brand-green: #132B25;
+  --brand-accent: #22C55E;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Ensure sections scroll below the fixed 72px navbar */
+section[id] {
+  scroll-margin-top: 80px;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', 'Inter', 'Cairo', sans-serif;
+  background-color: #F6F8F6;
+  color: #0F172A;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Operations OS Grid Background Pattern */
+.bg-grid-pattern {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(200, 215, 205, 0.25) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(200, 215, 205, 0.25) 1px, transparent 1px);
+}
+
+[dir="rtl"] {
+  font-family: 'Cairo', sans-serif;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* ── 3D DRONE PERSPECTIVE HERO ── */
+.hero-scene {
+  perspective: 1200px;
+  perspective-origin: 50% 50%;
+}
+
+.hero-layer {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+@keyframes drone-approach {
+  0% { transform: perspective(1200px) translateZ(0) rotateX(0deg) scale(1.15); }
+  25% { transform: perspective(1200px) translateZ(80px) rotateX(2deg) rotateY(-1deg) scale(1.18); }
+  50% { transform: perspective(1200px) translateZ(160px) rotateX(-1deg) rotateY(1deg) scale(1.22); }
+  75% { transform: perspective(1200px) translateZ(100px) rotateX(1deg) rotateY(-0.5deg) scale(1.18); }
+  100% { transform: perspective(1200px) translateZ(0) rotateX(0deg) scale(1.15); }
+}
+
+@keyframes drone-flythrough {
+  0% { transform: perspective(1200px) translate3d(0, 0, 0) rotateX(3deg) rotateY(-2deg) scale(1.2); }
+  33% { transform: perspective(1200px) translate3d(-30px, -20px, 120px) rotateX(-2deg) rotateY(3deg) scale(1.28); }
+  66% { transform: perspective(1200px) translate3d(20px, 10px, 60px) rotateX(1deg) rotateY(-1deg) scale(1.22); }
+  100% { transform: perspective(1200px) translate3d(0, 0, 0) rotateX(3deg) rotateY(-2deg) scale(1.2); }
+}
+
+@keyframes drone-hover {
+  0%, 100% { transform: perspective(1200px) translateZ(0) rotateX(0) rotateY(0) scale(1.12); }
+  50% { transform: perspective(1200px) translateZ(40px) rotateX(1.5deg) rotateY(-1deg) scale(1.16); }
+}
+
+.animate-drone-approach { animation: drone-approach 12s ease-in-out infinite; }
+.animate-drone-flythrough { animation: drone-flythrough 14s ease-in-out infinite; }
+.animate-drone-hover { animation: drone-hover 8s ease-in-out infinite; }
+
+@keyframes float-blob {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -20px) scale(1.05); }
+  66% { transform: translate(-20px, 15px) scale(0.95); }
+}
+
+@keyframes float-blob-reverse {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-25px, 20px) scale(1.08); }
+  66% { transform: translate(15px, -25px) scale(0.92); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes parallax-drift {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(12px, -8px) rotate(2deg); }
+  50% { transform: translate(-6px, -16px) rotate(-1deg); }
+  75% { transform: translate(-14px, 4px) rotate(1deg); }
+}
+
+.animate-drone-fly { animation: drone-fly 8s ease-in-out infinite; }
+.animate-drone-fly-alt { animation: drone-fly-alt 10s ease-in-out infinite; }
+.animate-float-blob { animation: float-blob 12s ease-in-out infinite; }
+.animate-float-blob-reverse { animation: float-blob-reverse 14s ease-in-out infinite; }
+.animate-shimmer { background-size: 200% auto; animation: shimmer 3s linear infinite; }
+.animate-slide-up { animation: slide-up 0.7s cubic-bezier(0.16,1,0.3,1) forwards; }
+.animate-parallax-drift { animation: parallax-drift 20s ease-in-out infinite; }
+
+/* Floating notification cards in hero */
+@keyframes float-card {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes float-card-delayed {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+.animate-float { animation: float-card 3.5s ease-in-out infinite; }
+.animate-float-delayed { animation: float-card-delayed 4s ease-in-out infinite 1s; }
+
+/* Hover lift for cards */
+.card-lift {
+  @apply transition-all duration-300 ease-out;
+}
+.card-lift:hover {
+  @apply -translate-y-2 shadow-2xl;
+}
+
+/* Stronger text contrast utilities */
+.text-boost {
+  text-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+
+/* Glassmorphism card */
+.glass-card {
+  @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-lg;
+}
+
+/* Utility Components for Sub-Pages & Dashboard */
+@layer components {
+  .page-container {
+    @apply space-y-6 pb-12;
+  }
+
+  .page-title {
+    @apply text-2xl sm:text-3xl font-extrabold text-[#0D2A24] tracking-tight;
+  }
+
+  .page-subtitle {
+    @apply text-sm text-slate-500 font-medium mt-1;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl;
+  }
+
+  .stat-card {
+    @apply card flex flex-col justify-between;
+  }
+
+  .stat-value {
+    @apply text-2xl sm:text-3xl font-extrabold text-[#0D2A24] tracking-tight mt-2;
+  }
+
+  .stat-label {
+    @apply text-xs font-semibold uppercase tracking-wider text-slate-500;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-4 py-2.5 rounded-xl font-semibold text-sm text-white bg-[#132B25] hover:bg-[#1A3831] active:scale-[0.97] transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed gap-2;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-4 py-2.5 rounded-xl font-semibold text-sm text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-900 active:scale-[0.98] transition-all shadow-sm gap-2;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center px-4 py-2.5 rounded-xl font-semibold text-sm text-white bg-rose-600 hover:bg-rose-700 active:scale-[0.98] transition-all shadow-sm gap-2;
+  }
+
+  .btn-success {
+    @apply inline-flex items-center justify-center px-4 py-2.5 rounded-xl font-semibold text-sm text-white bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] transition-all shadow-sm gap-2;
+  }
+
+  .input-field {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#D97757]/30 focus:border-[#D97757] transition-all shadow-sm;
+  }
+
+  select.input-field {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+  }
+
+  .input-label {
+    @apply block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold gap-1;
+  }
+
+  .badge-green {
+    @apply bg-emerald-50 text-emerald-700 border border-emerald-200;
+  }
+
+  .badge-yellow {
+    @apply bg-amber-50 text-amber-700 border border-amber-200;
+  }
+
+  .badge-red {
+    @apply bg-rose-50 text-rose-700 border border-rose-200;
+  }
+
+  .badge-blue {
+    @apply bg-sky-50 text-sky-700 border border-sky-200;
+  }
+
+  .badge-gray {
+    @apply bg-slate-100 text-slate-700 border border-slate-200;
+  }
+
+  .table-header {
+    @apply px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider bg-slate-50 border-b border-slate-200;
+  }
+
+  .table-cell {
+    @apply px-4 py-3.5 text-sm text-slate-700 border-b border-slate-100 align-middle;
+  }
+
+  .table-row {
+    @apply hover:bg-slate-50/80 transition-colors;
+  }
+}

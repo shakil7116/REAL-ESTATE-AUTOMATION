@@ -1,0 +1,461 @@
+// Database schema for PropertyEase - Real Estate Management SaaS
+// This will be used with Prisma ORM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// USER & AUTHENTICATION
+// ==========================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String
+  nameAr        String?   // Arabic name
+  phone         String?
+  role          UserRole  @default(MANAGER)
+  avatar        String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  properties    Property[]
+  maintenanceTasks MaintenanceTask[]
+  activities    Activity[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  OWNER       // Property owner - full access
+  MANAGER     // Property manager - day-to-day ops
+  ACCOUNTANT  // Payments & reports only
+  MAINTENANCE // Maintenance team only
+  TENANT      // Tenant portal access
+}
+
+// ==========================================
+// PROPERTIES & UNITS
+// ==========================================
+
+model Property {
+  id            String    @id @default(cuid())
+  name          String
+  nameAr        String?   // Arabic name
+  address       String
+  addressAr     String?
+  city          String
+  country       String    @default("UAE")
+  propertyType  PropertyType @default(RESIDENTIAL)
+  totalUnits    Int       @default(0)
+  description   String?
+  descriptionAr String?
+  images        String[]  // Array of image URLs
+  status        PropertyStatus @default(ACTIVE)
+  monthlyMaintenanceFee Decimal? // Service charge
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  units         Unit[]
+  createdBy     String
+  creator       User      @relation(fields: [createdBy], references: [id])
+
+  @@map("properties")
+}
+
+enum PropertyType {
+  RESIDENTIAL   // Apartments, villas
+  COMMERCIAL    // Offices, shops
+  MIXED         // Both residential and commercial
+}
+
+enum PropertyStatus {
+  ACTIVE        // Operational
+  UNDER_RENOVATION // Being prepared
+  INACTIVE      // Not accepting tenants
+}
+
+model Unit {
+  id              String    @id @default(cuid())
+  unitNumber      String
+  floor           Int?
+  floorLabel      String?   // "Basement", "Ground", "1st Floor", ..., "Penthouse"
+  bedrooms        Int       @default(0) // 0=studio, 1=1BHK, 2=2BHK, 3=3BHK
+  bathrooms       Int       @default(1)
+  livingRooms     Int?      @default(0)
+  kitchens        Int?      @default(1)
+  hasMaidRoom     Boolean?  @default(false)
+  hasDriverRoom   Boolean?  @default(false)
+  balconies       Int?      @default(0)
+  parkingSpaces   Int?      @default(0)
+  hasStorage      Boolean?  @default(false)
+  areaSqft        Decimal?
+  monthlyRent     Decimal
+  securityDeposit Decimal?
+  furnishing      FurnishingStatus @default(UNFURNISHED)
+  status          UnitStatus @default(VACANT)
+  description     String?
+  descriptionAr   String?
+  images          String[]
+  amenities       String[]  // ["ac", "parking", "balcony", etc.]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  propertyId      String
+  property        Property  @relation(fields: [propertyId], references: [id])
+  leases          Lease[]
+  maintenanceTickets MaintenanceTicket[]
+
+  @@unique([propertyId, unitNumber])
+  @@map("units")
+}
+
+enum FurnishingStatus {
+  UNFURNISHED
+  SEMI_FURNISHED
+  FULLY_FURNISHED
+}
+
+enum UnitStatus {
+  VACANT
+  OCCUPIED
+  MAINTENANCE
+  RESERVED
+}
+
+// ==========================================
+// TENANTS & LEASES
+// ==========================================
+
+model Tenant {
+  id              String    @id @default(cuid())
+  name            String
+  nameAr          String?
+  email           String?
+  phone           String
+  phone2          String?
+  idType          String?   // "emirates_id", "passport", etc.
+  idNumber        String?
+  nationality     String?
+  emergencyContact String?
+  emergencyPhone  String?
+  company         String?   // If corporate tenant
+  notes           String?
+  avatar          String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  leases          Lease[]
+  payments        Payment[]
+  maintenanceTickets MaintenanceTicket[]
+
+  @@map("tenants")
+}
+
+model Lease {
+  id              String    @id @default(cuid())
+  leaseNumber     String    @unique // e.g., "LEASE-2024-001"
+  startDate       DateTime
+  endDate         DateTime
+  monthlyRent     Decimal
+  paymentDay      Int       @default(1) // Day of month rent is due
+  paymentMethod   PaymentMethod @default(PDC)
+  securityDeposit Decimal
+  status          LeaseStatus @default(ACTIVE)
+  contractUrl     String?   // Digital copy of signed contract
+  specialTerms    String?
+  renewalOption   Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+  unitId          String
+  unit            Unit      @relation(fields: [unitId], references: [id])
+  payments        Payment[]
+
+  @@map("leases")
+}
+
+enum PaymentMethod {
+  PDC             // Post-dated cheques
+  BANK_TRANSFER
+  CASH
+  ONLINE
+}
+
+enum LeaseStatus {
+  ACTIVE
+  EXPIRED
+  TERMINATED
+  PENDING_RENEWAL
+}
+
+// ==========================================
+// PAYMENTS & FINANCES
+// ==========================================
+
+model Payment {
+  id              String    @id @default(cuid())
+  amount          Decimal
+  paymentDate     DateTime
+  dueDate         DateTime
+  paymentType     PaymentType @default(RENT)
+  paymentMethod   PaymentMethod
+  chequeNumber    String?   // For PDC
+  chequeDate      DateTime? // For PDC
+  bankReference   String?   // For bank transfer
+  status          PaymentStatus @default(PENDING)
+  notes           String?
+  receiptUrl      String?   // Upload receipt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  leaseId        String
+  lease          Lease     @relation(fields: [leaseId], references: [id])
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@map("payments")
+}
+
+enum PaymentType {
+  RENT
+  SECURITY_DEPOSIT
+  MAINTENANCE_FEE
+  LATE_FEE
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  RECEIVED
+  OVERDUE
+  BOUNCED
+  CANCELLED
+}
+
+// Owner Payouts - Money paid to property owners
+model OwnerPayout {
+  id              String    @id @default(cuid())
+  propertyId      String
+  amount          Decimal
+  payoutDate      DateTime
+  period          String    // e.g., "July 2024"
+  method          PaymentMethod
+  chequeNumber    String?
+  bankReference   String?
+  status          PaymentStatus @default(PENDING)
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("owner_payouts")
+}
+
+// ==========================================
+// MAINTENANCE
+// ==========================================
+
+model MaintenanceTicket {
+  id              String    @id @default(cuid())
+  ticketNumber    String    @unique // e.g., "MT-2024-001"
+  title           String
+  description     String
+  priority        Priority  @default(MEDIUM)
+  category        String?   // "plumbing", "electrical", "general", etc.
+  status          TicketStatus @default(OPEN)
+  images          String[]  // Before photos
+  resolution      String?   // What was done
+  resolutionImages String[] // After photos
+  estimatedCost   Decimal?
+  actualCost      Decimal?
+  scheduledDate   DateTime?
+  completedDate   DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  unitId          String
+  unit            Unit      @relation(fields: [unitId], references: [id])
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+  assignedToId    String?
+  assignedTo      User?     @relation(fields: [assignedToId], references: [id])
+
+  @@map("maintenance_tickets")
+}
+
+model MaintenanceTask {
+  id              String    @id @default(cuid())
+  title           String
+  description     String?
+  frequency       String    // "weekly", "monthly", "quarterly", "yearly"
+  nextDueDate     DateTime
+  lastCompleted   DateTime?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  assignedToId    String?
+  assignedTo      User?     @relation(fields: [assignedToId], references: [id])
+
+  @@map("maintenance_tasks")
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_PARTS
+  COMPLETED
+  CANCELLED
+}
+
+// ==========================================
+// LEAD PIPELINE (for finding tenants)
+// ==========================================
+
+model Lead {
+  id              String    @id @default(cuid())
+  name            String
+  nameAr          String?
+  phone           String
+  email           String?
+  source          LeadSource @default(DIRECT)
+  sourceDetail    String?   // e.g., "Facebook Ad #123", "Bayut listing"
+  propertyInterest String?  // What property type they want
+  budget          Decimal?
+  status          LeadStatus @default(NEW)
+  notes           String?
+  contactedAt     DateTime?
+  visitedAt       DateTime?
+  convertedAt     DateTime? // When they became a tenant
+  tenantId        String?   // Link to tenant if converted
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("leads")
+}
+
+enum LeadSource {
+  DIRECT          // Walk-in
+  PHONE_CALL
+  WHATSAPP
+  META_ADS        // Facebook/Instagram
+  GOOGLE_ADS
+  BAYUT           // Property portal
+  PROPERTY_FINDER
+  REFERRAL        // Word of mouth
+  OTHER
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  INTERESTED
+  VISITED
+  NEGOTIATING
+  CONVERTED      // Became a tenant
+  LOST           // Went to competitor
+}
+
+// ==========================================
+// ADVERTISING & CAMPAIGNS
+// ==========================================
+
+model AdCampaign {
+  id              String    @id @default(cuid())
+  name            String
+  platform        AdPlatform
+  campaignId      String?   // External campaign ID from ad platform
+  startDate       DateTime
+  endDate         DateTime?
+  budget          Decimal
+  spent           Decimal   @default(0)
+  status          CampaignStatus @default(ACTIVE)
+  targetAudience  String?
+  objective       String?   // "lead_generation", "brand_awareness"
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  adLeads         Lead[]
+  adMetrics       AdMetric[]
+
+  @@map("ad_campaigns")
+}
+
+enum AdPlatform {
+  META            // Facebook & Instagram
+  GOOGLE          // Google Ads
+  BAYUT
+  PROPERTY_FINDER
+  LOCAL_AGENCY
+}
+
+enum CampaignStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+model AdMetric {
+  id              String    @id @default(cuid())
+  date            DateTime
+  impressions     Int       @default(0)
+  clicks          Int       @default(0)
+  leads           Int       @default(0)
+  cost            Decimal   @default(0)
+  cpc             Decimal?  // Cost per click
+  cpl             Decimal?  // Cost per lead
+  conversions     Int       @default(0)
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  campaignId      String
+  campaign        AdCampaign @relation(fields: [campaignId], references: [id])
+
+  @@map("ad_metrics")
+}
+
+// ==========================================
+// ACTIVITY LOG
+// ==========================================
+
+model Activity {
+  id              String    @id @default(cuid())
+  action          String    // "created", "updated", "deleted", etc.
+  entity          String    // "property", "unit", "tenant", etc.
+  entityId        String
+  details         String?   // JSON with changes
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+
+  @@map("activities")
+}

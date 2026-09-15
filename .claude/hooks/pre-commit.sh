@@ -24,11 +24,10 @@ SECRET_PATTERNS=(
   'eyJ[a-zA-Z0-9_-]{20,}\.eyJ[a-zA-Z0-9_-]{20,}\.[a-zA-Z0-9_-]{20,}'  # JWT
 )
 
-# Files to scan. Skip .env.example (documented template, safe to commit),
-# lockfiles / node_modules (no secrets by construction), and this hook
-# itself (the SECRET_PATTERNS below legitimately contain the patterns
-# they look for, so a self-scan always triggers).
-SCAN_TARGETS=$(git diff --cached --name-only --diff-filter=ACM | grep -v -E '\.lock$|node_modules/|\.env\.example$|\.claude/hooks/' || true)
+# Files to scan. Skip .env.example, docs/ (templates/demos), lockfiles /
+# node_modules (no secrets by construction), and this hook itself (the
+# SECRET_PATTERNS below legitimately contain the patterns they look for).
+SCAN_TARGETS=$(git diff --cached --name-only --diff-filter=ACM | grep -v -E '\.lock$|node_modules/|\.env\.example$|^docs/|\.claude/hooks/' || true)
 
 if [ -n "$SCAN_TARGETS" ]; then
   for pattern in "${SECRET_PATTERNS[@]}"; do

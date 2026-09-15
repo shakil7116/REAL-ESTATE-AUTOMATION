@@ -1,0 +1,159 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/anthropic-sdk-typescript/main/schemas/mcp.json",
+  "version": "1.0.0",
+  "name": "propertyease-mcp-registry",
+  "description": "Model Context Protocol tool registry for the PropertyEase AI-OS. Declares external tools the LLM can invoke. Engine-independent: any MCP-compliant client can read this.",
+
+  "_meta": {
+    "owner": "@devops",
+    "last_updated": "2026-08-26",
+    "schema_version": "1.0.0",
+    "notes": "When you add a tool here, document it. When you remove a tool, write a memory note explaining why."
+  },
+
+  "servers": [
+    {
+      "name": "github",
+      "description": "GitHub API — repos, PRs, issues, actions, code search",
+      "transport": {
+        "type": "stdio",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-github"],
+        "env": {
+          "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+        }
+      },
+      "tools": [
+        "create_issue",
+        "create_pull_request",
+        "list_pull_requests",
+        "get_pull_request",
+        "merge_pull_request",
+        "search_code",
+        "search_issues"
+      ],
+      "used_by_agents": ["@product-owner", "@devops", "@qa-tester"],
+      "required_for": [
+        "Opening PRs",
+        "Searching codebase via GitHub",
+        "Closing issues"
+      ]
+    },
+
+    {
+      "name": "filesystem",
+      "description": "Local filesystem access — the AI-OS's primary workspace. Already provided by the host, declared here for documentation.",
+      "transport": {
+        "type": "builtin"
+      },
+      "tools": [
+        "read_file",
+        "write_file",
+        "edit_file",
+        "list_directory",
+        "search_files",
+        "glob"
+      ],
+      "used_by_agents": ["@frontend-eng", "@backend-eng", "@ai-eng", "@qa-tester", "@devops", "@product-owner"],
+      "required_for": ["Everything"],
+      "_note": "This is provided by the host runtime (Claude Code, Cursor, etc). Declared here so every agent knows the canonical file operations."
+    },
+
+    {
+      "name": "supabase",
+      "description": "Supabase project — Postgres queries, auth checks, storage. Read-only at the MCP layer; mutations go through API routes.",
+      "transport": {
+        "type": "stdio",
+        "command": "npx",
+        "args": ["-y", "@supabase/mcp-server-supabase"],
+        "env": {
+          "SUPABASE_URL": "${NEXT_PUBLIC_SUPABASE_URL}",
+          "SUPABASE_ANON_KEY": "${NEXT_PUBLIC_SUPABASE_ANON_KEY}"
+        }
+      },
+      "tools": [
+        "list_tables",
+        "execute_sql",
+        "get_advisors",
+        "get_logs"
+      ],
+      "used_by_agents": ["@backend-eng", "@devops"],
+      "required_for": [
+        "Inspecting schema",
+        "Running read-only queries",
+        "Debugging RLS"
+      ],
+      "_warning": "Mutations through MCP are FORBIDDEN. All writes go through API routes (contracts/api-envelope.md). Use execute_sql only for SELECT."
+    },
+
+    {
+      "name": "vercel",
+      "description": "Vercel deploys, env vars, function logs, project config",
+      "transport": {
+        "type": "stdio",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-vercel"],
+        "env": {
+          "VERCEL_TOKEN": "${VERCEL_TOKEN}"
+        }
+      },
+      "tools": [
+        "list_deployments",
+        "get_deployment",
+        "list_env_vars",
+        "get_function_logs",
+        "promote_deployment"
+      ],
+      "used_by_agents": ["@devops"],
+      "required_for": [
+        "Checking deploy status",
+        "Reading function logs",
+        "Promoting a canary to production"
+      ]
+    },
+
+    {
+      "name": "openai",
+      "description": "OpenAI API — used by PropertyEase Copilot, ad-copy, and lead-scoring. Configured via the app, not directly by agents.",
+      "transport": {
+        "type": "internal",
+        "_note": "Not exposed as an MCP tool. Agents call this via API routes in propertyease/src/app/api/ai/**, not directly."
+      },
+      "used_by_agents": ["@ai-eng"],
+      "_policy": "Direct LLM calls from agents are forbidden. All AI features go through contracts/prompts/ + the API layer. This keeps prompt versioning and eval coverage centralized."
+    },
+
+    {
+      "name": "linear",
+      "description": "Linear — issue tracking and sprint planning",
+      "transport": {
+        "type": "stdio",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-linear"],
+        "env": {
+          "LINEAR_API_KEY": "${LINEAR_API_KEY}"
+        }
+      },
+      "tools": [
+        "list_issues",
+        "create_issue",
+        "update_issue",
+        "list_projects",
+        "list_cycles"
+      ],
+      "used_by_agents": ["@product-owner", "@qa-tester"],
+      "required_for": [
+        "Backlog management",
+        "Sprint planning",
+        "Bug triage"
+      ]
+    }
+  ],
+
+  "policies": {
+    "secret_handling": "All tokens come from environment variables. NEVER hard-code tokens in this file. The ${VAR} syntax is resolved by the host at runtime.",
+    "read_only_by_default": "Mutations (create, update, delete) require explicit agent authorization per the AGENTS.md contract. When in doubt, the agent is read-only.",
+    "versioning": "Bump this file's version when adding/removing a server. Add a memory note explaining the change.",
+    "engine_independence": "This file uses the standard MCP spec. Any MCP-compliant client can parse it. No Claude-specific, GPT-specific, or proxy-specific fields."
+  }
+}

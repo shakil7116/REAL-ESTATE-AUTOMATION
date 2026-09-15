@@ -1,0 +1,68 @@
+# ─────────────────────────────────────────────────────────────────
+# PropertyEase — Root .gitignore
+# Catches everything not covered by per-subfolder .gitignore.
+# Per-subfolder .gitignore takes precedence for files inside it.
+# ─────────────────────────────────────────────────────────────────
+
+# ── AI-OS working files ──────────────────────────────────────────
+# Eval results are auto-generated, never commit
+evals/results.json
+memory/evals-history.md
+
+# Local Claude / Cursor / VS Code config (per-developer)
+.vscode/
+.idea/
+.cursor/
+.aider*
+.continue/
+*.swp
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Secrets (NEVER commit, EVER) ─────────────────────────────────
+# Pre-commit hook also blocks these but gitignore is the first line
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.staging
+.claude/settings.json
+*.pem
+*.key
+*.p12
+*.pfx
+service-account*.json
+gha-creds-*
+
+# Backups
+*.bak
+*.backup
+*.orig
+*.rej
+
+# Test outputs
+coverage/
+.nyc_output/
+junit.xml
+test-results/
+playwright-report/
+playwright/.cache/
+.vercel
+
+# Logs
+*.log
+logs/
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# Next.js build output
+.next/
+
+# Temp activities from monitoring
+/UsersHpAppDataLocalTempactivities.json

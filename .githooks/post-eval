@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# .githooks/post-eval — wrapper that delegates to .claude/hooks/post-eval.sh
+
+set -e
+exec "$(dirname "$0")/../.claude/hooks/post-eval.sh" "$@"
